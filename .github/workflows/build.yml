@@ -1,0 +1,88 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main", "capy/**" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug/release)'
+        required: false
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the Repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Clean project
+      run: ./gradlew clean
+
+    - name: Build with Gradle
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+          ./gradlew assembleRelease --stacktrace
+        else
+          ./gradlew assembleDebug --stacktrace
+        fi
+
+    - name: Run tests
+      run: ./gradlew testDebugUnitTest --stacktrace
+
+    - name: Generate APK report
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "✅ APK build completed successfully" >> $GITHUB_STEP_SUMMARY
+        echo "Build Type: ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
+        find ./app/build/outputs/apk/ -name "*.apk" -exec ls -la {} \; >> $GITHUB_STEP_SUMMARY || echo "APK files not found" >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MicrosoftRewards-Bot-${{ github.event.inputs.build_type || 'debug' }}-APK
+        path: |
+          ./app/build/outputs/apk/debug/*.apk
+          ./app/build/outputs/apk/release/*.apk
+        retention-days: 30
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          app/build/reports/tests/
+          app/build/test-results/
+        retention-days: 7
