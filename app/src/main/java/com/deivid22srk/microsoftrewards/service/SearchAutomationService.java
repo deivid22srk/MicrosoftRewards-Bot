@@ -176,7 +176,8 @@ public class SearchAutomationService extends Service {
         try {
             // Codificar a query para URL
             String encodedQuery = URLEncoder.encode(searchQuery, "UTF-8");
-            String searchUrl = "https://www.bing.com/search?q=" + encodedQuery;
+            // Incluir parâmetros necessários para Microsoft Rewards
+            String searchUrl = "https://www.bing.com/search?q=" + encodedQuery + "&PC=U316&FORM=CHROMN";
             
             // Tentar abrir no Chrome especificamente - reutilizando guia existente
             // FLAG_ACTIVITY_CLEAR_TOP: traz Chrome para frente se já estiver aberto
