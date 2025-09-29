@@ -24,12 +24,39 @@ import okhttp3.Response;
 /**
  * 🤖 Integração com Gemini AI para geração de pesquisas inteligentes
  * Gera pesquisas diversificadas e contextualmente relevantes usando IA generativa
+ * 
+ * MODELOS SUPORTADOS (2025):
+ * - gemini-2.5-flash: Melhor custo-benefício (padrão)
+ * - gemini-2.5-pro: Mais avançado para tarefas complexas
+ * - gemini-2.5-flash-lite: Mais rápido e econômico
  */
 public class GeminiSearchGenerator {
     
     private static final String TAG = "GeminiSearchGenerator";
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent";
+    private static final String BASE_API_URL = "https://generativelanguage.googleapis.com/v1/models";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    
+    // Modelos disponíveis em 2025
+    public enum GeminiModel {
+        FLASH_2_5("gemini-2.5-flash", "Gemini 2.5 Flash (Recomendado)"),
+        PRO_2_5("gemini-2.5-pro", "Gemini 2.5 Pro (Mais Avançado)"),
+        FLASH_LITE_2_5("gemini-2.5-flash-lite", "Gemini 2.5 Flash-Lite (Mais Rápido)");
+        
+        private final String modelId;
+        private final String displayName;
+        
+        GeminiModel(String modelId, String displayName) {
+            this.modelId = modelId;
+            this.displayName = displayName;
+        }
+        
+        public String getModelId() { return modelId; }
+        public String getDisplayName() { return displayName; }
+        public String getApiUrl() { return BASE_API_URL + "/" + modelId + ":generateContent"; }
+    }
+    
+    // Modelo padrão
+    private static final GeminiModel DEFAULT_MODEL = GeminiModel.FLASH_2_5;
     
     // Cliente HTTP configurado para requisições à API
     private static final OkHttpClient client = new OkHttpClient.Builder()
@@ -54,7 +81,14 @@ public class GeminiSearchGenerator {
      * @param listener Callback para resultado
      */
     public static void generateSearchesWithGemini(int count, Context context, String apiKey, OnSearchGeneratedListener listener) {
-        new GenerateSearchTask(count, context, apiKey, listener).execute();
+        generateSearchesWithGemini(count, context, apiKey, DEFAULT_MODEL, listener);
+    }
+    
+    /**
+     * Gera pesquisas usando Gemini AI com modelo específico
+     */
+    public static void generateSearchesWithGemini(int count, Context context, String apiKey, GeminiModel model, OnSearchGeneratedListener listener) {
+        new GenerateSearchTask(count, context, apiKey, model, listener).execute();
     }
     
     /**
@@ -65,20 +99,27 @@ public class GeminiSearchGenerator {
         private final int count;
         private final Context context;
         private final String apiKey;
+        private final GeminiModel model;
         private final OnSearchGeneratedListener listener;
         private String errorMessage;
         
-        public GenerateSearchTask(int count, Context context, String apiKey, OnSearchGeneratedListener listener) {
+        public GenerateSearchTask(int count, Context context, String apiKey, GeminiModel model, OnSearchGeneratedListener listener) {
             this.count = count;
             this.context = context;
             this.apiKey = apiKey;
+            this.model = model;
             this.listener = listener;
+        }
+        
+        // Construtor para compatibilidade (usa modelo padrão)
+        public GenerateSearchTask(int count, Context context, String apiKey, OnSearchGeneratedListener listener) {
+            this(count, context, apiKey, DEFAULT_MODEL, listener);
         }
         
         @Override
         protected List<SearchItem> doInBackground(Void... voids) {
             try {
-                return generateSearchesSynchronously(count, apiKey);
+                return generateSearchesSynchronously(count, apiKey, model);
             } catch (Exception e) {
                 Log.e(TAG, "Erro ao gerar pesquisas com Gemini", e);
                 errorMessage = "Erro na comunicação com Gemini AI: " + e.getMessage();
@@ -100,19 +141,20 @@ public class GeminiSearchGenerator {
     /**
      * Gera pesquisas de forma síncrona (para uso em AsyncTask)
      */
-    private static List<SearchItem> generateSearchesSynchronously(int count, String apiKey) throws IOException, JSONException {
+    private static List<SearchItem> generateSearchesSynchronously(int count, String apiKey, GeminiModel model) throws IOException, JSONException {
         
         // Criar prompt inteligente para o Gemini
         String prompt = createSmartPrompt(count);
+        Log.d(TAG, "Usando modelo: " + model.getDisplayName() + " (" + model.getModelId() + ")");
         Log.d(TAG, "Prompt criado para Gemini: " + prompt.substring(0, Math.min(100, prompt.length())) + "...");
         
         // Construir request JSON
         JSONObject requestBody = buildGeminiRequest(prompt);
         Log.d(TAG, "Request JSON criado: " + requestBody.toString().substring(0, Math.min(200, requestBody.toString().length())) + "...");
         
-        // Fazer requisição HTTP
-        String fullUrl = GEMINI_API_URL + "?key=" + apiKey;
-        Log.d(TAG, "Fazendo requisição para: " + GEMINI_API_URL + "?key=" + apiKey.substring(0, Math.min(10, apiKey.length())) + "...");
+        // Fazer requisição HTTP usando URL do modelo específico
+        String fullUrl = model.getApiUrl() + "?key=" + apiKey;
+        Log.d(TAG, "Fazendo requisição para: " + model.getApiUrl() + "?key=" + apiKey.substring(0, Math.min(10, apiKey.length())) + "...");
         
         Request request = new Request.Builder()
                 .url(fullUrl)
@@ -127,7 +169,7 @@ public class GeminiSearchGenerator {
             if (!response.isSuccessful()) {
                 String errorBody = response.body() != null ? response.body().string() : "Sem corpo na resposta";
                 Log.e(TAG, "Erro na API: " + response.code() + " - " + errorBody);
-                throw new IOException("Erro na API Gemini: " + response.code() + " " + response.message() + "\nDetalhes: " + errorBody);
+                throw new IOException("Erro na API Gemini (" + model.getDisplayName() + "): " + response.code() + " " + response.message() + "\nDetalhes: " + errorBody);
             }
             
             String responseBody = response.body().string();
@@ -306,12 +348,12 @@ public class GeminiSearchGenerator {
      * Testa a conectividade com a API do Gemini
      */
     public static void testGeminiConnection(String apiKey, OnSearchGeneratedListener listener) {
-        // Primeiro tenta listar modelos disponíveis
+        // Primeiro testa se a API está funcionando
         testApiConnection(apiKey, new ApiTestListener() {
             @Override
             public void onApiWorking() {
-                // Se API está funcionando, tenta gerar pesquisas de teste
-                generateSearchesWithGemini(3, null, apiKey, new OnSearchGeneratedListener() {
+                // Se API está funcionando, tenta gerar pesquisas de teste com o modelo padrão
+                generateSearchesWithGemini(3, null, apiKey, DEFAULT_MODEL, new OnSearchGeneratedListener() {
                     @Override
                     public void onSuccess(List<SearchItem> searches) {
                         listener.onSuccess(searches);
@@ -345,8 +387,8 @@ public class GeminiSearchGenerator {
     private static void testApiConnection(String apiKey, ApiTestListener listener) {
         new Thread(() -> {
             try {
-                // Fazer uma requisição simples para testar conectividade
-                String testUrl = "https://generativelanguage.googleapis.com/v1/models?key=" + apiKey;
+                // Fazer uma requisição simples para listar modelos e testar conectividade
+                String testUrl = BASE_API_URL + "?key=" + apiKey;
                 
                 Request request = new Request.Builder()
                         .url(testUrl)
@@ -356,8 +398,15 @@ public class GeminiSearchGenerator {
                 
                 try (Response response = client.newCall(request).execute()) {
                     if (response.isSuccessful()) {
-                        Log.d(TAG, "Teste de API bem-sucedido");
-                        listener.onApiWorking();
+                        String responseBody = response.body().string();
+                        Log.d(TAG, "Teste de API bem-sucedido: " + responseBody.substring(0, Math.min(200, responseBody.length())));
+                        
+                        // Verificar se os modelos esperados estão disponíveis
+                        if (responseBody.contains("gemini-2.5-flash") || responseBody.contains("gemini-2")) {
+                            listener.onApiWorking();
+                        } else {
+                            listener.onApiError("Modelos Gemini 2.5 não encontrados na resposta da API");
+                        }
                     } else {
                         String errorBody = response.body() != null ? response.body().string() : "Sem detalhes";
                         Log.e(TAG, "Teste de API falhou: " + response.code() + " - " + errorBody);

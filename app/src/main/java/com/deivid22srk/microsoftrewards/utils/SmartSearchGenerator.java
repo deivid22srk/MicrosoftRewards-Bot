@@ -229,7 +229,8 @@ public class SmartSearchGenerator {
         final Exception[] error = new Exception[1];
         final Object lock = new Object();
         
-        GeminiSearchGenerator.generateSearchesWithGemini(count, context, apiKey, new GeminiSearchGenerator.OnSearchGeneratedListener() {
+        GeminiSearchGenerator.generateSearchesWithGemini(count, context, apiKey, 
+            GeminiSearchGenerator.GeminiModel.FLASH_2_5, new GeminiSearchGenerator.OnSearchGeneratedListener() {
             @Override
             public void onSuccess(List<SearchItem> searches) {
                 synchronized (lock) {
