@@ -16,6 +16,14 @@
     <color name="microsoft_red">#D13438</color>
     <color name="microsoft_yellow">#FFB900</color>
     
+    <!-- Material You (Material Design 3) colors -->
+    <color name="colorOutline">#79747E</color>
+    <color name="colorOnSurfaceVariant">#49454F</color>
+    <color name="colorPrimaryContainer">#D1E5FF</color>
+    <color name="colorOnPrimaryContainer">#001D36</color>
+    <color name="colorSecondaryContainer">#C8E6C9</color>
+    <color name="colorOnSecondaryContainer">#002203</color>
+    
     <!-- Background colors -->
     <color name="background_light">#FFFFFF</color>
     <color name="surface_light">#F5F5F5</color>

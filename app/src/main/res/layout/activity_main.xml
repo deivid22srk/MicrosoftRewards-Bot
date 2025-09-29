@@ -55,7 +55,7 @@
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/searchCountInputLayout"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="@string/search_count_label"
@@ -106,7 +106,7 @@
                         android:text="@string/generate_searches_btn"
                         app:icon="@drawable/ic_auto_awesome"
                         app:iconGravity="start"
-                        style="@style/Widget.MaterialComponents.Button" />
+                        style="@style/Widget.Material3.Button" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/startButton"
@@ -116,7 +116,7 @@
                         android:text="@string/start_automation_btn"
                         app:icon="@drawable/ic_play_arrow"
                         app:iconGravity="start"
-                        style="@style/Widget.MaterialComponents.Button"
+                        style="@style/Widget.Material3.Button"
                         android:enabled="false" />
 
                     <com.google.android.material.button.MaterialButton
@@ -126,7 +126,7 @@
                         android:text="@string/stop_automation_btn"
                         app:icon="@drawable/ic_stop"
                         app:iconGravity="start"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
                         android:enabled="false" />
 
                 </LinearLayout>
