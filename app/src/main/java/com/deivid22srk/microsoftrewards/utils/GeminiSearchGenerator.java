@@ -28,14 +28,14 @@ import okhttp3.Response;
 public class GeminiSearchGenerator {
     
     private static final String TAG = "GeminiSearchGenerator";
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
+    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     
     // Cliente HTTP configurado para requisições à API
     private static final OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
             .build();
     
     /**
@@ -141,37 +141,37 @@ public class GeminiSearchGenerator {
      */
     private static String createSmartPrompt(int count) {
         return String.format(
-            "Generate exactly %d unique search terms in Brazilian Portuguese for Microsoft Rewards. " +
-            "Each term should be 2-5 words and cover diverse topics.\n\n" +
+            "Gere exatamente %d termos de pesquisa únicos em português brasileiro para Microsoft Rewards. " +
+            "Cada termo deve ter 2-5 palavras e cobrir tópicos diversos.\n\n" +
             
-            "REQUIREMENTS:\n" +
-            "• All terms must be different and unique\n" +
-            "• Use current topics from 2024-2025\n" +
-            "• Include variety: technology, entertainment, health, education, culture, sports\n" +
-            "• Natural language that people actually search for\n" +
-            "• No repetition or very similar terms\n\n" +
+            "REQUISITOS:\n" +
+            "- Todos os termos devem ser diferentes e únicos\n" +
+            "- Use tópicos atuais de 2024-2025\n" +
+            "- Inclua variedade: tecnologia, entretenimento, saúde, educação, cultura, esportes\n" +
+            "- Linguagem natural que pessoas realmente pesquisam\n" +
+            "- Sem repetição ou termos muito similares\n\n" +
             
-            "TOPICS TO INCLUDE:\n" +
-            "• Artificial Intelligence and technology\n" +
-            "• Movies, series, and entertainment\n" +
-            "• Games and esports\n" +
-            "• Health and wellness\n" +
-            "• Education and career\n" +
-            "• Finance and investments\n" +
-            "• Cooking and recipes\n" +
-            "• Travel and tourism\n" +
-            "• Sports and teams\n" +
-            "• Current news and events\n\n" +
+            "TÓPICOS PARA INCLUIR:\n" +
+            "- Inteligência artificial e tecnologia\n" +
+            "- Filmes, séries e entretenimento\n" +
+            "- Jogos e esports\n" +
+            "- Saúde e bem-estar\n" +
+            "- Educação e carreira\n" +
+            "- Finanças e investimentos\n" +
+            "- Culinária e receitas\n" +
+            "- Viagens e turismo\n" +
+            "- Esportes e times\n" +
+            "- Notícias e eventos atuais\n\n" +
             
-            "OUTPUT FORMAT:\n" +
-            "Return ONLY the search terms, one per line, no numbering, no additional explanations.\n\n" +
+            "FORMATO DE RESPOSTA:\n" +
+            "Retorne APENAS os termos de pesquisa, um por linha, sem numeração, sem explicações adicionais.\n\n" +
             
-            "Example:\n" +
+            "Exemplo:\n" +
             "inteligência artificial 2024\n" +
             "receitas saudáveis\n" +
             "melhores filmes netflix\n\n" +
             
-            "Generate %d unique terms now:",
+            "Gere %d termos únicos agora:",
             count, count
         );
     }
@@ -182,7 +182,7 @@ public class GeminiSearchGenerator {
     private static JSONObject buildGeminiRequest(String prompt) throws JSONException {
         JSONObject request = new JSONObject();
         
-        // Configurar conteúdo
+        // Configurar conteúdo no formato correto
         JSONArray contents = new JSONArray();
         JSONObject content = new JSONObject();
         JSONArray parts = new JSONArray();
@@ -195,16 +195,16 @@ public class GeminiSearchGenerator {
         
         request.put("contents", contents);
         
-        // Configurar parâmetros de geração
+        // Configurar parâmetros de geração (simplificados para compatibilidade)
         JSONObject generationConfig = new JSONObject();
-        generationConfig.put("temperature", 0.9);
+        generationConfig.put("temperature", 0.7);
         generationConfig.put("topK", 40);
         generationConfig.put("topP", 0.95);
-        generationConfig.put("maxOutputTokens", 2048);
+        generationConfig.put("maxOutputTokens", 1024);
         
         request.put("generationConfig", generationConfig);
         
-        // Configurar filtros de segurança
+        // Configurar filtros de segurança (básicos)
         JSONArray safetySettings = new JSONArray();
         String[] categories = {
             "HARM_CATEGORY_HARASSMENT",
@@ -216,7 +216,7 @@ public class GeminiSearchGenerator {
         for (String category : categories) {
             JSONObject safety = new JSONObject();
             safety.put("category", category);
-            safety.put("threshold", "BLOCK_MEDIUM_AND_ABOVE");
+            safety.put("threshold", "BLOCK_ONLY_HIGH");
             safetySettings.put(safety);
         }
         
@@ -306,16 +306,69 @@ public class GeminiSearchGenerator {
      * Testa a conectividade com a API do Gemini
      */
     public static void testGeminiConnection(String apiKey, OnSearchGeneratedListener listener) {
-        generateSearchesWithGemini(5, null, apiKey, new OnSearchGeneratedListener() {
+        // Primeiro tenta listar modelos disponíveis
+        testApiConnection(apiKey, new ApiTestListener() {
             @Override
-            public void onSuccess(List<SearchItem> searches) {
-                listener.onSuccess(searches);
+            public void onApiWorking() {
+                // Se API está funcionando, tenta gerar pesquisas de teste
+                generateSearchesWithGemini(3, null, apiKey, new OnSearchGeneratedListener() {
+                    @Override
+                    public void onSuccess(List<SearchItem> searches) {
+                        listener.onSuccess(searches);
+                    }
+                    
+                    @Override
+                    public void onError(String errorMessage) {
+                        listener.onError("Teste de geração falhou: " + errorMessage);
+                    }
+                });
             }
             
             @Override
-            public void onError(String errorMessage) {
-                listener.onError("Teste de conexão falhou: " + errorMessage);
+            public void onApiError(String error) {
+                listener.onError("Teste de conexão falhou: " + error);
             }
         });
+    }
+    
+    /**
+     * Interface para callback de teste da API
+     */
+    private interface ApiTestListener {
+        void onApiWorking();
+        void onApiError(String error);
+    }
+    
+    /**
+     * Testa se a API está funcionando fazendo uma requisição simples
+     */
+    private static void testApiConnection(String apiKey, ApiTestListener listener) {
+        new Thread(() -> {
+            try {
+                // Fazer uma requisição simples para testar conectividade
+                String testUrl = "https://generativelanguage.googleapis.com/v1/models?key=" + apiKey;
+                
+                Request request = new Request.Builder()
+                        .url(testUrl)
+                        .get()
+                        .addHeader("User-Agent", "Microsoft-Rewards-Bot/2.0")
+                        .build();
+                
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        Log.d(TAG, "Teste de API bem-sucedido");
+                        listener.onApiWorking();
+                    } else {
+                        String errorBody = response.body() != null ? response.body().string() : "Sem detalhes";
+                        Log.e(TAG, "Teste de API falhou: " + response.code() + " - " + errorBody);
+                        listener.onApiError("API retornou erro " + response.code() + ": " + errorBody);
+                    }
+                }
+                
+            } catch (Exception e) {
+                Log.e(TAG, "Erro no teste de conectividade", e);
+                listener.onApiError("Erro de conectividade: " + e.getMessage());
+            }
+        }).start();
     }
 }
