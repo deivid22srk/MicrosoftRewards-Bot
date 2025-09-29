@@ -179,14 +179,14 @@ public class SearchAutomationService extends Service {
             // Incluir parâmetros necessários para Microsoft Rewards
             String searchUrl = "https://www.bing.com/search?q=" + encodedQuery + "&PC=U316&FORM=CHROMN";
             
-            // Tentar abrir no Chrome especificamente - reutilizando guia existente
-            // FLAG_ACTIVITY_CLEAR_TOP: traz Chrome para frente se já estiver aberto
+            // Tentar abrir no Chrome especificamente - reutilizando guia existente quando possível
+            // FLAG_ACTIVITY_NEW_TASK: obrigatório para Service abrir atividade
+            // FLAG_ACTIVITY_CLEAR_TOP: traz Chrome para frente se já estiver aberto  
             // FLAG_ACTIVITY_SINGLE_TOP: reutiliza atividade existente ao invés de criar nova
-            // FLAG_ACTIVITY_REORDER_TO_FRONT: move atividade existente para frente da pilha
             Intent chromeIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
+            chromeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             chromeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             chromeIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            chromeIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             
             // Verificar se Chrome está disponível
             PackageManager pm = getPackageManager();
@@ -218,11 +218,11 @@ public class SearchAutomationService extends Service {
                 Log.d(TAG, "Opened in Chrome: " + searchUrl);
                 return true;
             } else {
-                // Se Chrome não estiver disponível, usar navegador padrão - reutilizando guia existente
+                // Se Chrome não estiver disponível, usar navegador padrão - reutilizando guia existente quando possível
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
+                browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                browserIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 
                 if (browserIntent.resolveActivity(pm) != null) {
                     startActivity(browserIntent);
