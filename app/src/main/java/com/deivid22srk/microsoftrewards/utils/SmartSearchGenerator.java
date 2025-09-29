@@ -557,14 +557,12 @@ public class SmartSearchGenerator {
             
             // Detectar categorias
             for (String category : ADVANCED_KNOWLEDGE.keySet()) {
-                for (Map<String, String[]> subcat : ADVANCED_KNOWLEDGE.get(category).values()) {
-                    for (String[] topics : subcat.values()) {
-                        for (String topic : topics) {
-                            if (query.contains(topic.toLowerCase())) {
-                                categories.add(category);
-                                meaningfulQueries++;
-                                break;
-                            }
+                for (String[] topics : ADVANCED_KNOWLEDGE.get(category).values()) {
+                    for (String topic : topics) {
+                        if (query.contains(topic.toLowerCase())) {
+                            categories.add(category);
+                            meaningfulQueries++;
+                            break;
                         }
                     }
                 }
