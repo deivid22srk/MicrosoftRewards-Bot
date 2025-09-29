@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -137,8 +138,9 @@ public class FloatingButtonService extends Service {
     private void initializeFloatingButton() {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         
-        // Inflar o layout do botão flutuante
-        LayoutInflater inflater = LayoutInflater.from(this);
+        // Criar contexto com tema AppCompat para Material Components
+        Context themedContext = new ContextThemeWrapper(this, R.style.FloatingButtonTheme);
+        LayoutInflater inflater = LayoutInflater.from(themedContext);
         floatingView = inflater.inflate(R.layout.floating_button_layout, null);
         
         // Inicializar views
