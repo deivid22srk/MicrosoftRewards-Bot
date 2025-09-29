@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
@@ -22,6 +24,7 @@ import com.deivid22srk.microsoftrewards.model.SearchItem;
 import com.deivid22srk.microsoftrewards.service.FloatingButtonService;
 import com.deivid22srk.microsoftrewards.service.SearchAutomationService;
 import com.deivid22srk.microsoftrewards.utils.SmartSearchGenerator;
+import com.deivid22srk.microsoftrewards.utils.AppConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private SearchAdapter searchAdapter;
     private List<SearchItem> searchItems;
+    private AppConfig config;
     
     private boolean isAutomationRunning = false;
 
@@ -42,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        config = AppConfig.getInstance(this);
+        
         setupToolbar();
         setupRecyclerView();
         setupClickListeners();
@@ -51,6 +57,48 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupToolbar() {
         setSupportActionBar(binding.toolbar);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_settings) {
+            openAdvancedSettings();
+            return true;
+        } else if (id == R.id.action_about) {
+            showAboutDialog();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+    
+    private void openAdvancedSettings() {
+        Intent intent = new Intent(this, AdvancedSettingsActivity.class);
+        startActivity(intent);
+    }
+    
+    private void showAboutDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("🤖 Microsoft Rewards Bot Advanced")
+            .setMessage("Versão 2.0 - IA Revolucionária\\n\\n" +
+                       "✨ Recursos:\\n" +
+                       "• IA tipo ChatGPT com contexto avançado\\n" +
+                       "• Configurações totalmente personalizáveis\\n" +
+                       "• Suporte a múltiplos navegadores\\n" +
+                       "• URLs válidas para Microsoft Rewards\\n" +
+                       "• Sistema anti-repetição global\\n\\n" +
+                       "Desenvolvido com ❤️ por Capy AI")
+            .setPositiveButton("OK", null)
+            .setNeutralButton("⚙️ Configurações", (dialog, which) -> openAdvancedSettings())
+            .show();
     }
 
     private void setupRecyclerView() {
@@ -88,9 +136,23 @@ public class MainActivity extends AppCompatActivity {
         
         binding.searchCountInputLayout.setError(null);
         
-        // Gerar pesquisas com IA avançada
+        // Gerar pesquisas com IA avançada baseada nas configurações
         searchItems.clear();
-        List<SearchItem> generatedSearches = SmartSearchGenerator.generateAdvancedIntelligentSearches(count, this);
+        List<SearchItem> generatedSearches;
+        
+        AppConfig.AIMode aiMode = config.getAIMode();
+        switch (aiMode) {
+            case CHATGPT:
+                generatedSearches = SmartSearchGenerator.generateAdvancedIntelligentSearches(count, this);
+                break;
+            case ADVANCED:
+            case CUSTOM:
+                generatedSearches = SmartSearchGenerator.generateAdvancedIntelligentSearches(count, this);
+                break;
+            default:
+                generatedSearches = SmartSearchGenerator.generateSmartSearches(count);
+                break;
+        }
         
         searchItems.addAll(generatedSearches);
         
@@ -98,7 +160,16 @@ public class MainActivity extends AppCompatActivity {
         binding.searchesCard.setVisibility(View.VISIBLE);
         binding.startButton.setEnabled(true);
         
-        Toast.makeText(this, getString(R.string.searches_generated, count), Toast.LENGTH_SHORT).show();
+        // Mostrar preview das configurações
+        String configPreview = String.format(
+            "✅ %d pesquisas geradas\\n🧠 IA: %s\\n⏰ Intervalo: %ds\\n📱 Browser: %s", 
+            count, 
+            config.getAIMode().getDisplayName(),
+            config.getSearchInterval(),
+            config.getBrowserApp().getDisplayName()
+        );
+        
+        Toast.makeText(this, configPreview, Toast.LENGTH_LONG).show();
     }
 
     private void startAutomation() {
@@ -136,12 +207,19 @@ public class MainActivity extends AppCompatActivity {
         floatingIntent.putExtra("searchItems", new ArrayList<>(searchItems));
         startService(floatingIntent);
         
-        // Iniciar serviço de automação
+        // Iniciar serviço de automação avançado
         Intent automationIntent = new Intent(this, SearchAutomationService.class);
         automationIntent.putExtra("searchItems", new ArrayList<>(searchItems));
         startService(automationIntent);
         
-        Toast.makeText(this, R.string.automation_started, Toast.LENGTH_SHORT).show();
+        String startMessage = String.format(
+            "🚀 Automação iniciada!\\n⚙️ Config: %s | %ds | %s", 
+            config.getAIMode().getDisplayName(),
+            config.getSearchInterval(),
+            config.getBrowserApp().getDisplayName()
+        );
+        
+        Toast.makeText(this, startMessage, Toast.LENGTH_LONG).show();
     }
 
     private void stopAutomation() {
@@ -152,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
         stopService(new Intent(this, FloatingButtonService.class));
         stopService(new Intent(this, SearchAutomationService.class));
         
-        Toast.makeText(this, R.string.automation_stopped, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "🛑 Automação interrompida", Toast.LENGTH_SHORT).show();
     }
 
     private void updateUI() {
@@ -180,16 +258,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestOverlayPermission() {
         new AlertDialog.Builder(this)
-            .setTitle(R.string.overlay_permission_required)
-            .setMessage(R.string.overlay_permission_message)
-            .setPositiveButton(R.string.grant_permission, (dialog, which) -> {
+            .setTitle("🔒 Permissão de Overlay")
+            .setMessage("O app precisa de permissão para exibir elementos sobre outros apps para mostrar o progresso durante a automação.")
+            .setPositiveButton("Conceder", (dialog, which) -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, 
                         Uri.parse("package:" + getPackageName()));
                     startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE);
                 }
             })
-            .setNegativeButton(R.string.cancel, null)
+            .setNegativeButton("Cancelar", null)
             .setCancelable(false)
             .show();
     }
@@ -202,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
             if (hasOverlayPermission()) {
                 startAutomation();
             } else {
-                Toast.makeText(this, "Permissão necessária para continuar", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "⚠️ Permissão necessária para usar o botão flutuante", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -220,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
                     requestOverlayPermission();
                 }
             } else {
-                Toast.makeText(this, "Permissão de notificação é necessária para funcionamento completo", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "⚠️ Permissão de notificação recomendada para melhor funcionamento", Toast.LENGTH_LONG).show();
                 // Mesmo sem notificação, permitir continuar se tiver overlay
                 if (hasOverlayPermission()) {
                     startAutomationServices();

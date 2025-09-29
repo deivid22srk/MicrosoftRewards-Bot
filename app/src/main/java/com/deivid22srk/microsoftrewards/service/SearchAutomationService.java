@@ -21,19 +21,21 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.deivid22srk.microsoftrewards.MainActivity;
 import com.deivid22srk.microsoftrewards.R;
 import com.deivid22srk.microsoftrewards.model.SearchItem;
+import com.deivid22srk.microsoftrewards.utils.AppConfig;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
+/**
+ * 🚀 Serviço de Automação de Pesquisas AVANÇADO
+ * Agora com configurações personalizáveis e múltiplos navegadores
+ */
 public class SearchAutomationService extends Service {
     
     private static final String TAG = "SearchAutomationService";
     private static final String CHANNEL_ID = "SearchAutomationChannel";
     private static final int NOTIFICATION_ID = 2;
-    private static final int SEARCH_INTERVAL_MS = 5000; // 5 segundos
-    private static final int COUNTDOWN_INTERVAL_MS = 1000; // 1 segundo para countdown
     
     private Handler handler;
     private Handler countdownHandler;
@@ -41,14 +43,21 @@ public class SearchAutomationService extends Service {
     private int currentSearchIndex = 0;
     private boolean isRunning = false;
     private int countdownSeconds = 5;
+    
+    // 🛠️ Configurações avançadas
+    private AppConfig config;
+    private Random randomGenerator;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        config = AppConfig.getInstance(this);
+        randomGenerator = new Random();
+        
         createNotificationChannel();
         handler = new Handler(Looper.getMainLooper());
         countdownHandler = new Handler(Looper.getMainLooper());
-        Log.d(TAG, "SearchAutomationService created");
+        Log.d(TAG, "SearchAutomationService created with advanced config");
     }
 
     @Override
@@ -60,10 +69,11 @@ public class SearchAutomationService extends Service {
                 currentSearchIndex = 0;
                 isRunning = true;
                 
-                startForeground(NOTIFICATION_ID, createNotification("Iniciando automação..."));
+                startForeground(NOTIFICATION_ID, createNotification("🚀 Iniciando automação avançada..."));
                 startSearchAutomation();
                 
-                Log.d(TAG, "Search automation started with " + searchItems.size() + " items");
+                Log.d(TAG, "Advanced search automation started with " + searchItems.size() + " items");
+                Log.d(TAG, "Config: " + config.exportConfig());
             }
         }
         
@@ -79,10 +89,10 @@ public class SearchAutomationService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                "Search Automation Service",
+                "Advanced Search Automation Service",
                 NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("Executa pesquisas automáticas");
+            channel.setDescription("Executa pesquisas automáticas com configurações avançadas");
             
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(channel);
@@ -97,7 +107,7 @@ public class SearchAutomationService extends Service {
         );
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Microsoft Rewards Bot")
+            .setContentTitle("🤖 Microsoft Rewards Bot Advanced")
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
@@ -111,17 +121,20 @@ public class SearchAutomationService extends Service {
             return;
         }
 
+        // Usar intervalo configurável com delay aleatório
+        int delayTime = config.getActualSearchInterval();
+        
         // Iniciar countdown antes da próxima pesquisa
         if (currentSearchIndex > 0) {
-            startCountdown();
+            startCountdown(delayTime);
         } else {
             // Primeira pesquisa, executar imediatamente
             executeCurrentSearch();
         }
     }
 
-    private void startCountdown() {
-        countdownSeconds = 5;
+    private void startCountdown(int delaySeconds) {
+        countdownSeconds = delaySeconds;
         runCountdown();
     }
 
@@ -129,11 +142,12 @@ public class SearchAutomationService extends Service {
         if (!isRunning) return;
         
         if (countdownSeconds > 0) {
-            updateNotification("Próxima pesquisa em " + countdownSeconds + " segundos");
+            updateNotification(String.format("⏰ Próxima pesquisa em %ds (Config: %ds)", 
+                               countdownSeconds, config.getSearchInterval()));
             updateFloatingButton("COUNTDOWN");
             
             countdownSeconds--;
-            countdownHandler.postDelayed(this::runCountdown, COUNTDOWN_INTERVAL_MS);
+            countdownHandler.postDelayed(this::runCountdown, config.getCountdownInterval() * 1000);
         } else {
             executeCurrentSearch();
         }
@@ -148,107 +162,163 @@ public class SearchAutomationService extends Service {
         SearchItem currentItem = searchItems.get(currentSearchIndex);
         currentItem.setStatus(SearchItem.SearchStatus.IN_PROGRESS);
         
-        Log.d(TAG, "Executing search: " + currentItem.getSearchText());
+        Log.d(TAG, String.format("🔍 Executing search %d/%d: %s", 
+                                currentSearchIndex + 1, searchItems.size(), currentItem.getSearchText()));
         
-        updateNotification("Pesquisando: " + currentItem.getSearchText());
+        updateNotification("🔍 Pesquisando: " + currentItem.getSearchText());
         updateFloatingButton("IN_PROGRESS");
 
-        // Abrir Chrome com a pesquisa
-        boolean success = openChromeSearch(currentItem.getSearchText());
+        // Abrir navegador com configurações avançadas
+        boolean success = openAdvancedBrowserSearch(currentItem.getSearchText());
         
         if (success) {
             currentItem.setStatus(SearchItem.SearchStatus.COMPLETED);
-            Log.d(TAG, "Search completed successfully: " + currentItem.getSearchText());
+            Log.d(TAG, "✅ Search completed successfully: " + currentItem.getSearchText());
         } else {
             currentItem.setStatus(SearchItem.SearchStatus.FAILED);
-            Log.e(TAG, "Search failed: " + currentItem.getSearchText());
+            Log.e(TAG, "❌ Search failed: " + currentItem.getSearchText());
         }
 
         // Atualizar progresso
         currentSearchIndex++;
         updateFloatingButton("COMPLETED");
 
-        // Agendar próxima pesquisa
-        handler.postDelayed(this::startSearchAutomation, 2000); // 2 segundos para mostrar resultado
+        // Agendar próxima pesquisa com tempo configurável
+        int resultDisplayTime = config.getResultDisplayTime() * 1000;
+        handler.postDelayed(this::startSearchAutomation, resultDisplayTime);
     }
 
-    private boolean openChromeSearch(String searchQuery) {
+    /**
+     * 🚀 Método avançado de abertura de navegador com múltiplas opções
+     */
+    private boolean openAdvancedBrowserSearch(String searchQuery) {
         try {
-            // Codificar a query para URL
-            String encodedQuery = URLEncoder.encode(searchQuery, "UTF-8");
-            // Incluir parâmetros necessários para Microsoft Rewards
-            String searchUrl = "https://www.bing.com/search?q=" + encodedQuery + "&PC=U316&FORM=CHROMN";
+            // 1. Construir URL usando configurações personalizadas
+            String searchUrl = config.buildSearchUrl(searchQuery);
+            Log.d(TAG, "🌐 Built search URL: " + searchUrl);
             
-            // Tentar abrir no Chrome especificamente - reutilizando guia existente quando possível
-            // FLAG_ACTIVITY_NEW_TASK: obrigatório para Service abrir atividade
-            // FLAG_ACTIVITY_CLEAR_TOP: traz Chrome para frente se já estiver aberto  
-            // FLAG_ACTIVITY_SINGLE_TOP: reutiliza atividade existente ao invés de criar nova
-            Intent chromeIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
-            chromeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            chromeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            chromeIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            // 2. Configurar Intent com flags personalizáveis
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
+            configureBrowserIntent(browserIntent);
             
-            // Verificar se Chrome está disponível
-            PackageManager pm = getPackageManager();
+            // 3. Tentar app de navegador configurado
+            AppConfig.BrowserApp preferredBrowser = config.getBrowserApp();
+            boolean success = tryOpenInBrowser(browserIntent, preferredBrowser, searchUrl);
             
-            // Tentar diferentes pacotes do Chrome
-            String[] chromePackages = {
-                "com.android.chrome",           // Chrome
-                "com.chrome.beta",              // Chrome Beta
-                "com.chrome.dev",               // Chrome Dev
-                "com.chrome.canary",            // Chrome Canary
-                "org.chromium.chrome"           // Chromium
-            };
-            
-            boolean chromeAvailable = false;
-            for (String packageName : chromePackages) {
-                try {
-                    pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
-                    chromeIntent.setPackage(packageName);
-                    chromeAvailable = true;
-                    Log.d(TAG, "Found Chrome package: " + packageName);
-                    break;
-                } catch (PackageManager.NameNotFoundException e) {
-                    // Continue para próximo pacote
-                }
+            // 4. Fallback para Chrome se habilitado
+            if (!success && config.isChromeFallbackEnabled() && preferredBrowser != AppConfig.BrowserApp.CHROME) {
+                Log.d(TAG, "🔄 Trying Chrome fallback...");
+                success = tryOpenInBrowser(browserIntent, AppConfig.BrowserApp.CHROME, searchUrl);
             }
             
-            if (chromeAvailable) {
-                startActivity(chromeIntent);
-                Log.d(TAG, "Opened in Chrome: " + searchUrl);
+            // 5. Fallback para navegador padrão
+            if (!success) {
+                Log.d(TAG, "🔄 Trying default browser...");
+                success = tryOpenInDefaultBrowser(browserIntent, searchUrl);
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error in advanced browser search: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    private void configureBrowserIntent(Intent intent) {
+        // Flags para reutilização inteligente de guias
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        
+        // Modo incógnito se habilitado (apenas para Chrome)
+        if (config.isIncognitoModeEnabled()) {
+            intent.putExtra("com.google.android.apps.chrome.EXTRA_OPEN_NEW_INCOGNITO_TAB", true);
+        }
+        
+        // Configurações stealth se habilitadas
+        if (config.isStealthModeEnabled()) {
+            intent.putExtra("create_new_tab", true);
+        }
+    }
+    
+    private boolean tryOpenInBrowser(Intent intent, AppConfig.BrowserApp browser, String searchUrl) {
+        try {
+            PackageManager pm = getPackageManager();
+            String packageName = browser.getPackageName();
+            
+            if (packageName.isEmpty()) return false; // Custom package não implementado ainda
+            
+            // Verificar se o app está instalado
+            try {
+                pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
+            } catch (PackageManager.NameNotFoundException e) {
+                Log.w(TAG, "⚠️ Browser not installed: " + browser.getDisplayName());
+                return false;
+            }
+            
+            // Configurar package específico
+            intent.setPackage(packageName);
+            
+            // Configurações específicas por browser
+            configureBrowserSpecifics(intent, browser);
+            
+            startActivity(intent);
+            Log.d(TAG, String.format("✅ Opened in %s: %s", browser.getDisplayName(), searchUrl));
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, String.format("❌ Failed to open %s: %s", browser.getDisplayName(), e.getMessage()));
+            return false;
+        }
+    }
+    
+    private void configureBrowserSpecifics(Intent intent, AppConfig.BrowserApp browser) {
+        switch (browser) {
+            case BING:
+                // Configurações específicas do Bing
+                intent.putExtra("msrewards", true);
+                break;
+            case EDGE:
+                // Configurações específicas do Edge
+                intent.putExtra("edge_rewards", true);
+                break;
+            case CHROME:
+            case CHROME_BETA:
+                // Configurações específicas do Chrome
+                if (config.isIncognitoModeEnabled()) {
+                    intent.putExtra("com.google.android.apps.chrome.EXTRA_OPEN_NEW_INCOGNITO_TAB", true);
+                }
+                break;
+        }
+    }
+    
+    private boolean tryOpenInDefaultBrowser(Intent intent, String searchUrl) {
+        try {
+            PackageManager pm = getPackageManager();
+            intent.setPackage(null); // Remove package restriction
+            
+            if (intent.resolveActivity(pm) != null) {
+                startActivity(intent);
+                Log.d(TAG, "✅ Opened in default browser: " + searchUrl);
                 return true;
             } else {
-                // Se Chrome não estiver disponível, usar navegador padrão - reutilizando guia existente quando possível
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
-                browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                browserIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                browserIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                
-                if (browserIntent.resolveActivity(pm) != null) {
-                    startActivity(browserIntent);
-                    Log.d(TAG, "Opened in default browser: " + searchUrl);
-                    return true;
-                } else {
-                    Log.e(TAG, "No browser available to open URL");
-                    return false;
-                }
+                Log.e(TAG, "❌ No browser available to open URL");
+                return false;
             }
             
-        } catch (UnsupportedEncodingException e) {
-            Log.e(TAG, "Error encoding search query: " + e.getMessage());
-            return false;
         } catch (Exception e) {
-            Log.e(TAG, "Error opening browser: " + e.getMessage());
+            Log.e(TAG, "❌ Error opening default browser: " + e.getMessage());
             return false;
         }
     }
 
     private void completeAutomation() {
         isRunning = false;
-        updateNotification("Automação concluída!");
+        updateNotification("🎉 Automação avançada concluída!");
         updateFloatingButton("COMPLETED");
         
-        Log.d(TAG, "Search automation completed");
+        Log.d(TAG, "🏁 Advanced search automation completed");
         
         // Parar serviço após alguns segundos
         handler.postDelayed(() -> {
@@ -286,6 +356,6 @@ public class SearchAutomationService extends Service {
             countdownHandler.removeCallbacksAndMessages(null);
         }
         
-        Log.d(TAG, "SearchAutomationService destroyed");
+        Log.d(TAG, "🛑 Advanced SearchAutomationService destroyed");
     }
 }

@@ -33,6 +33,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".AdvancedSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MicrosoftRewardsBot"
+            android:parentActivityName=".MainActivity" />
+
         <service
             android:name=".service.FloatingButtonService"
             android:enabled="true"
