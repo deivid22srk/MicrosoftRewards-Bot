@@ -141,7 +141,7 @@ public class SmartSearchGenerator {
             }
             
             usedQueries.add(query);
-            searches.add(new SearchItem(query, SearchItem.Status.PENDING));
+            searches.add(new SearchItem(query, i + 1));
         }
         
         return searches;
@@ -298,7 +298,7 @@ public class SmartSearchGenerator {
             }
             
             String query = generateBalancedQuery(usedCategories, usedQueries);
-            searches.add(new SearchItem(query, SearchItem.Status.PENDING));
+            searches.add(new SearchItem(query, i + 1));
         }
         
         return searches;
@@ -365,7 +365,7 @@ public class SmartSearchGenerator {
         int totalWords = 0;
         
         for (SearchItem search : searches) {
-            String[] words = search.getSearchQuery().toLowerCase().split("\\s+");
+            String[] words = search.getSearchText().toLowerCase().split("\\s+");
             totalWords += words.length;
             Collections.addAll(uniqueWords, words);
         }
