@@ -188,6 +188,90 @@ public class SmartSearchGenerator {
     }
     
     public static List<SearchItem> generateAdvancedIntelligentSearches(int count, Context context) {
+        return generateAdvancedIntelligentSearches(count, context, null);
+    }
+    
+    /**
+     * Método principal que escolhe entre geração offline ou online baseado nas configurações
+     */
+    public static List<SearchItem> generateAdvancedIntelligentSearches(int count, Context context, GeminiSearchGenerator.OnSearchGeneratedListener listener) {
+        if (context != null) {
+            AppConfig config = AppConfig.getInstance(context);
+            AppConfig.SearchGenerationMode mode = config.getSearchGenerationMode();
+            
+            // Se modo online estiver selecionado e tiver API key válida
+            if (mode == AppConfig.SearchGenerationMode.ONLINE_GEMINI && config.hasValidGeminiApiKey()) {
+                if (listener != null) {
+                    // Geração assíncrona para callback
+                    GeminiSearchGenerator.generateSearchesWithGemini(count, context, config.getGeminiApiKey(), listener);
+                    return new ArrayList<>(); // Retorna lista vazia, resultado vem no callback
+                } else {
+                    // Tentar geração síncrona com fallback
+                    try {
+                        return generateWithGeminiSync(count, context, config.getGeminiApiKey());
+                    } catch (Exception e) {
+                        android.util.Log.w("SmartSearchGenerator", "Falha no Gemini, usando geração local", e);
+                        // Continuar com geração offline como fallback
+                    }
+                }
+            }
+        }
+        
+        // Geração offline padrão
+        return generateOfflineIntelligentSearches(count, context);
+    }
+    
+    /**
+     * Geração síncrona com Gemini (com timeout)
+     */
+    private static List<SearchItem> generateWithGeminiSync(int count, Context context, String apiKey) {
+        final List<SearchItem>[] result = new List[1];
+        final Exception[] error = new Exception[1];
+        final Object lock = new Object();
+        
+        GeminiSearchGenerator.generateSearchesWithGemini(count, context, apiKey, new GeminiSearchGenerator.OnSearchGeneratedListener() {
+            @Override
+            public void onSuccess(List<SearchItem> searches) {
+                synchronized (lock) {
+                    result[0] = searches;
+                    lock.notify();
+                }
+            }
+            
+            @Override
+            public void onError(String errorMessage) {
+                synchronized (lock) {
+                    error[0] = new RuntimeException(errorMessage);
+                    lock.notify();
+                }
+            }
+        });
+        
+        // Aguardar resultado com timeout
+        synchronized (lock) {
+            try {
+                lock.wait(15000); // 15 segundos timeout
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Timeout na geração com Gemini", e);
+            }
+        }
+        
+        if (error[0] != null) {
+            throw new RuntimeException(error[0]);
+        }
+        
+        if (result[0] != null && !result[0].isEmpty()) {
+            return result[0];
+        }
+        
+        throw new RuntimeException("Nenhuma pesquisa foi gerada pelo Gemini");
+    }
+    
+    /**
+     * Geração offline inteligente (método original)
+     */
+    public static List<SearchItem> generateOfflineIntelligentSearches(int count, Context context) {
         List<SearchItem> searches = new ArrayList<>();
         Set<String> usedQueries = new HashSet<>();
         

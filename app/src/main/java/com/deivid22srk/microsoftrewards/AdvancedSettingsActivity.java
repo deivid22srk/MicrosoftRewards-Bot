@@ -2,10 +2,15 @@ package com.deivid22srk.microsoftrewards;
 
 import android.os.Bundle;
 import android.widget.*;
+import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.deivid22srk.microsoftrewards.databinding.ActivityAdvancedSettingsBinding;
 import com.deivid22srk.microsoftrewards.utils.AppConfig;
+import com.deivid22srk.microsoftrewards.utils.GeminiSearchGenerator;
+import com.deivid22srk.microsoftrewards.model.SearchItem;
+
+import java.util.List;
 
 /**
  * 🛠️ Tela de Configurações Avançadas
@@ -30,6 +35,7 @@ public class AdvancedSettingsActivity extends AppCompatActivity {
         setupBrowserSettings();
         setupAutomationSettings();
         setupAISettings();
+        setupSearchGenerationSettings();
         setupSecuritySettings();
         setupButtons();
         
@@ -242,6 +248,15 @@ public class AdvancedSettingsActivity extends AppCompatActivity {
         }
         binding.spinnerAiMode.setSelection(aiPosition);
         
+        // Configurações de geração de pesquisas
+        AppConfig.SearchGenerationMode generationMode = config.getSearchGenerationMode();
+        int generationPosition = generationMode == AppConfig.SearchGenerationMode.ONLINE_GEMINI ? 1 : 0;
+        binding.spinnerSearchGenerationMode.setSelection(generationPosition);
+        
+        // API Key do Gemini
+        binding.editGeminiApiKey.setText(config.getGeminiApiKey());
+        updateGeminiStatus();
+        
         // Configurar delays
         binding.textMinDelayValue.setText(config.getMinRandomDelay() + "s");
         binding.textMaxDelayValue.setText(config.getMaxRandomDelay() + "s");
@@ -291,6 +306,17 @@ public class AdvancedSettingsActivity extends AppCompatActivity {
                 AppConfig.AIMode.CHATGPT, AppConfig.AIMode.CUSTOM
             };
             config.setAIMode(aiModes[aiPos]);
+            
+            // Salvar modo de geração de pesquisas
+            int generationPos = binding.spinnerSearchGenerationMode.getSelectedItemPosition();
+            AppConfig.SearchGenerationMode[] generationModes = {
+                AppConfig.SearchGenerationMode.OFFLINE,
+                AppConfig.SearchGenerationMode.ONLINE_GEMINI
+            };
+            config.setSearchGenerationMode(generationModes[generationPos]);
+            
+            // Salvar API Key do Gemini
+            config.setGeminiApiKey(binding.editGeminiApiKey.getText().toString().trim());
             
             // Salvar parâmetros de URL
             config.setUrlPcParameter(binding.editPcParameter.getText().toString().trim());
@@ -361,6 +387,117 @@ public class AdvancedSettingsActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "❌ Erro no teste: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+    
+    private void setupSearchGenerationSettings() {
+        // Spinner para modo de geração de pesquisas
+        String[] generationModes = {"Offline (Local)", "Online (Gemini AI)"};
+        ArrayAdapter<String> generationAdapter = new ArrayAdapter<>(this, 
+            android.R.layout.simple_spinner_dropdown_item, generationModes);
+        binding.spinnerSearchGenerationMode.setAdapter(generationAdapter);
+        
+        binding.spinnerSearchGenerationMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                boolean isOnline = position == 1; // Online (Gemini AI)
+                binding.layoutGeminiConfig.setVisibility(isOnline ? View.VISIBLE : View.GONE);
+                
+                if (isOnline) {
+                    updateGeminiStatus();
+                }
+            }
+            
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        
+        // Configurar botão de teste do Gemini
+        binding.buttonTestGemini.setOnClickListener(v -> testGeminiConnection());
+        
+        // Configurar campo de API Key
+        binding.editGeminiApiKey.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                updateGeminiStatus();
+            }
+        });
+    }
+    
+    private void updateGeminiStatus() {
+        String apiKey = binding.editGeminiApiKey.getText().toString().trim();
+        
+        if (apiKey.isEmpty()) {
+            binding.textGeminiStatus.setText("Status: API Key não informada");
+            binding.textGeminiStatus.setTextColor(getColor(android.R.color.holo_orange_dark));
+        } else if (GeminiSearchGenerator.isValidGeminiApiKey(apiKey)) {
+            binding.textGeminiStatus.setText("Status: API Key válida");
+            binding.textGeminiStatus.setTextColor(getColor(android.R.color.holo_green_dark));
+        } else {
+            binding.textGeminiStatus.setText("Status: API Key inválida");
+            binding.textGeminiStatus.setTextColor(getColor(android.R.color.holo_red_dark));
+        }
+    }
+    
+    private void testGeminiConnection() {
+        String apiKey = binding.editGeminiApiKey.getText().toString().trim();
+        
+        if (apiKey.isEmpty()) {
+            Toast.makeText(this, "❌ Digite uma API Key primeiro", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (!GeminiSearchGenerator.isValidGeminiApiKey(apiKey)) {
+            Toast.makeText(this, "❌ API Key não parece válida", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        binding.buttonTestGemini.setEnabled(false);
+        binding.buttonTestGemini.setText("Testando...");
+        binding.textGeminiStatus.setText("Status: Testando conexão...");
+        binding.textGeminiStatus.setTextColor(getColor(android.R.color.holo_blue_bright));
+        
+        GeminiSearchGenerator.testGeminiConnection(apiKey, new GeminiSearchGenerator.OnSearchGeneratedListener() {
+            @Override
+            public void onSuccess(List<SearchItem> searches) {
+                runOnUiThread(() -> {
+                    binding.buttonTestGemini.setEnabled(true);
+                    binding.buttonTestGemini.setText("Testar API");
+                    binding.textGeminiStatus.setText("Status: ✅ Conectado com sucesso!");
+                    binding.textGeminiStatus.setTextColor(getColor(android.R.color.holo_green_dark));
+                    
+                    String previewMessage = String.format("🎉 Conexão bem-sucedida!\n\n" +
+                        "Teste gerou %d pesquisas:\n\n%s\n%s\n%s\n\n" +
+                        "A API está funcionando corretamente!", 
+                        searches.size(),
+                        searches.size() > 0 ? "• " + searches.get(0).getSearchText() : "",
+                        searches.size() > 1 ? "• " + searches.get(1).getSearchText() : "",
+                        searches.size() > 2 ? "• " + searches.get(2).getSearchText() : ""
+                    );
+                    
+                    new android.app.AlertDialog.Builder(AdvancedSettingsActivity.this)
+                        .setTitle("✅ Teste do Gemini")
+                        .setMessage(previewMessage)
+                        .setPositiveButton("OK", null)
+                        .show();
+                });
+            }
+            
+            @Override
+            public void onError(String errorMessage) {
+                runOnUiThread(() -> {
+                    binding.buttonTestGemini.setEnabled(true);
+                    binding.buttonTestGemini.setText("Testar API");
+                    binding.textGeminiStatus.setText("Status: ❌ Erro na conexão");
+                    binding.textGeminiStatus.setTextColor(getColor(android.R.color.holo_red_dark));
+                    
+                    new android.app.AlertDialog.Builder(AdvancedSettingsActivity.this)
+                        .setTitle("❌ Erro no Teste")
+                        .setMessage("Não foi possível conectar com o Gemini:\n\n" + errorMessage + 
+                                   "\n\nVerifique:\n• Conexão com internet\n• Validade da API Key\n• Limites da API")
+                        .setPositiveButton("OK", null)
+                        .show();
+                });
+            }
+        });
     }
     
     @Override

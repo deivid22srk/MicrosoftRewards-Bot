@@ -473,6 +473,126 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- 🤖 SEÇÃO: GERAÇÃO DE PESQUISAS -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🤖 Geração de Pesquisas"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Modo de geração -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Modo de geração"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerSearchGenerationMode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Configuração do Gemini API (visível apenas no modo online) -->
+                    <LinearLayout
+                        android:id="@+id/layoutGeminiConfig"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="API Key do Google Gemini"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            app:hintEnabled="false"
+                            app:endIconMode="password_toggle">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/editGeminiApiKey"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Digite sua API Key do Gemini"
+                                android:inputType="textPassword" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="💡 Obtenha sua API Key gratuita em: https://makersuite.google.com/app/apikey"
+                            android:textSize="12sp"
+                            android:textColor="?attr/colorSecondary"
+                            android:layout_marginBottom="8dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/buttonTestGemini"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="8dp"
+                                android:text="Testar API"
+                                android:backgroundTint="?attr/colorSecondary"
+                                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                            <TextView
+                                android:id="@+id/textGeminiStatus"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="2"
+                                android:text="Status: Não testado"
+                                android:textSize="12sp"
+                                android:gravity="center_vertical"
+                                android:layout_marginStart="8dp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- Info sobre modos -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• Offline: Usa gerador local inteligente\n• Online: Usa Gemini AI para pesquisas mais variadas"
+                        android:textSize="12sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:background="?attr/colorSurfaceVariant"
+                        android:padding="12dp"
+                        android:layout_marginTop="8dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- 🔐 SEÇÃO: CONFIGURAÇÕES DE SEGURANÇA -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"

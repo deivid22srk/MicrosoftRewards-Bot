@@ -37,6 +37,8 @@ public class AppConfig {
     private static final String KEY_AI_MODE = "ai_mode";
     private static final String KEY_ENABLE_CONTEXTUAL_LEARNING = "enable_contextual_learning";
     private static final String KEY_ENABLE_TEMPORAL_AWARENESS = "enable_temporal_awareness";
+    private static final String KEY_SEARCH_GENERATION_MODE = "search_generation_mode";
+    private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
     
     // 🔐 Configurações de Segurança
     private static final String KEY_STEALTH_MODE = "stealth_mode";
@@ -102,6 +104,23 @@ public class AppConfig {
         private final String displayName;
         
         AIMode(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+        
+        public String getId() { return id; }
+        public String getDisplayName() { return displayName; }
+    }
+    
+    // Enum para modo de geração de pesquisas
+    public enum SearchGenerationMode {
+        OFFLINE("offline", "Offline (Local)"),
+        ONLINE_GEMINI("online_gemini", "Online (Gemini AI)");
+        
+        private final String id;
+        private final String displayName;
+        
+        SearchGenerationMode(String id, String displayName) {
             this.id = id;
             this.displayName = displayName;
         }
@@ -292,6 +311,34 @@ public class AppConfig {
     
     public void setUserAgentRotationEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_ROTATE_USER_AGENT, enabled).apply();
+    }
+    
+    // 🤖 Getters e Setters para Configurações de Geração de Pesquisa
+    public SearchGenerationMode getSearchGenerationMode() {
+        String modeId = prefs.getString(KEY_SEARCH_GENERATION_MODE, "offline");
+        for (SearchGenerationMode mode : SearchGenerationMode.values()) {
+            if (mode.getId().equals(modeId)) {
+                return mode;
+            }
+        }
+        return SearchGenerationMode.OFFLINE;
+    }
+    
+    public void setSearchGenerationMode(SearchGenerationMode mode) {
+        prefs.edit().putString(KEY_SEARCH_GENERATION_MODE, mode.getId()).apply();
+    }
+    
+    public String getGeminiApiKey() {
+        return prefs.getString(KEY_GEMINI_API_KEY, "");
+    }
+    
+    public void setGeminiApiKey(String apiKey) {
+        prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey).apply();
+    }
+    
+    public boolean hasValidGeminiApiKey() {
+        String apiKey = getGeminiApiKey();
+        return apiKey != null && !apiKey.trim().isEmpty() && apiKey.startsWith("AIza");
     }
     
     // 🔧 Métodos utilitários

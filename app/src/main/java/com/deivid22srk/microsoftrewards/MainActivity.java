@@ -24,6 +24,7 @@ import com.deivid22srk.microsoftrewards.model.SearchItem;
 import com.deivid22srk.microsoftrewards.service.FloatingButtonService;
 import com.deivid22srk.microsoftrewards.service.SearchAutomationService;
 import com.deivid22srk.microsoftrewards.utils.SmartSearchGenerator;
+import com.deivid22srk.microsoftrewards.utils.GeminiSearchGenerator;
 import com.deivid22srk.microsoftrewards.utils.AppConfig;
 
 import java.util.ArrayList;
@@ -136,35 +137,99 @@ public class MainActivity extends AppCompatActivity {
         
         binding.searchCountInputLayout.setError(null);
         
-        // Gerar pesquisas com IA avançada baseada nas configurações
+        // Mostrar loading
+        binding.generateButton.setEnabled(false);
+        binding.generateButton.setText("Gerando...");
+        
+        // Limpar pesquisas anteriores
         searchItems.clear();
-        List<SearchItem> generatedSearches;
+        searchAdapter.notifyDataSetChanged();
         
-        AppConfig.AIMode aiMode = config.getAIMode();
-        switch (aiMode) {
-            case CHATGPT:
-                generatedSearches = SmartSearchGenerator.generateAdvancedIntelligentSearches(count, this);
-                break;
-            case ADVANCED:
-            case CUSTOM:
-                generatedSearches = SmartSearchGenerator.generateAdvancedIntelligentSearches(count, this);
-                break;
-            default:
-                generatedSearches = SmartSearchGenerator.generateSmartSearches(count);
-                break;
+        // Verificar modo de geração
+        AppConfig.SearchGenerationMode mode = config.getSearchGenerationMode();
+        boolean isOnlineMode = mode == AppConfig.SearchGenerationMode.ONLINE_GEMINI && config.hasValidGeminiApiKey();
+        
+        if (isOnlineMode) {
+            // Geração online com Gemini AI
+            generateSearchesWithGemini(count);
+        } else {
+            // Geração offline padrão
+            generateSearchesOffline(count);
         }
-        
+    }
+    
+    private void generateSearchesWithGemini(int count) {
+        GeminiSearchGenerator.generateSearchesWithGemini(count, this, config.getGeminiApiKey(), 
+            new GeminiSearchGenerator.OnSearchGeneratedListener() {
+                @Override
+                public void onSuccess(List<SearchItem> searches) {
+                    runOnUiThread(() -> {
+                        onSearchesGenerated(searches, "🤖 Gemini AI");
+                    });
+                }
+                
+                @Override
+                public void onError(String errorMessage) {
+                    runOnUiThread(() -> {
+                        android.util.Log.w("MainActivity", "Falha no Gemini, usando offline: " + errorMessage);
+                        Toast.makeText(MainActivity.this, "⚠️ Falha no Gemini, usando geração local", Toast.LENGTH_SHORT).show();
+                        generateSearchesOffline(count);
+                    });
+                }
+            });
+    }
+    
+    private void generateSearchesOffline(int count) {
+        // Executar em thread separada para não bloquear UI
+        new Thread(() -> {
+            try {
+                List<SearchItem> generatedSearches;
+                
+                AppConfig.AIMode aiMode = config.getAIMode();
+                switch (aiMode) {
+                    case CHATGPT:
+                        generatedSearches = SmartSearchGenerator.generateOfflineIntelligentSearches(count, this);
+                        break;
+                    case ADVANCED:
+                    case CUSTOM:
+                        generatedSearches = SmartSearchGenerator.generateOfflineIntelligentSearches(count, this);
+                        break;
+                    default:
+                        generatedSearches = SmartSearchGenerator.generateSmartSearches(count);
+                        break;
+                }
+                
+                runOnUiThread(() -> {
+                    onSearchesGenerated(generatedSearches, "💻 Local");
+                });
+                
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    binding.generateButton.setEnabled(true);
+                    binding.generateButton.setText("Gerar Pesquisas");
+                    Toast.makeText(MainActivity.this, "❌ Erro na geração: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+    
+    private void onSearchesGenerated(List<SearchItem> generatedSearches, String generationMode) {
+        searchItems.clear();
         searchItems.addAll(generatedSearches);
         
         searchAdapter.notifyDataSetChanged();
         binding.searchesCard.setVisibility(View.VISIBLE);
         binding.startButton.setEnabled(true);
         
+        // Restaurar botão
+        binding.generateButton.setEnabled(true);
+        binding.generateButton.setText("Gerar Pesquisas");
+        
         // Mostrar preview das configurações
         String configPreview = String.format(
-            "✅ %d pesquisas geradas\\n🧠 IA: %s\\n⏰ Intervalo: %ds\\n📱 Browser: %s", 
-            count, 
-            config.getAIMode().getDisplayName(),
+            "✅ %d pesquisas geradas\n🔧 Modo: %s\n⏰ Intervalo: %ds\n📱 Browser: %s", 
+            generatedSearches.size(), 
+            generationMode,
             config.getSearchInterval(),
             config.getBrowserApp().getDisplayName()
         );
