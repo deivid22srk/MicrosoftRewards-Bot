@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 /**
  * 🤖 IA HÍBRIDA TIPO CHATGPT para Microsoft Rewards
@@ -131,7 +132,7 @@ public class SmartSearchGenerator {
             
             return new SearchQuery(
                 String.format(template, topic),
-                domain.name(),
+                domain.name,
                 intent.getContextScore(),
                 "seed_reasoning"
             );
@@ -180,7 +181,7 @@ public class SmartSearchGenerator {
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .limit(5)
                 .map(Map.Entry::getKey)
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                .collect(Collectors.toList());
         }
         
         private String extractKeywords(String query) {
