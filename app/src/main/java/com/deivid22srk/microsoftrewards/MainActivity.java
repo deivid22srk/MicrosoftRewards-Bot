@@ -21,7 +21,7 @@ import com.deivid22srk.microsoftrewards.databinding.ActivityMainBinding;
 import com.deivid22srk.microsoftrewards.model.SearchItem;
 import com.deivid22srk.microsoftrewards.service.FloatingButtonService;
 import com.deivid22srk.microsoftrewards.service.SearchAutomationService;
-import com.deivid22srk.microsoftrewards.utils.SearchGenerator;
+import com.deivid22srk.microsoftrewards.utils.SmartSearchGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,6 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private SearchAdapter searchAdapter;
     private List<SearchItem> searchItems;
-    private SearchGenerator searchGenerator;
     
     private boolean isAutomationRunning = false;
 
@@ -47,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         setupRecyclerView();
         setupClickListeners();
         
-        searchGenerator = new SearchGenerator();
+        // IA Search Generator integrado - não precisa de inicialização
     }
 
     private void setupToolbar() {
@@ -89,14 +88,11 @@ public class MainActivity extends AppCompatActivity {
         
         binding.searchCountInputLayout.setError(null);
         
-        // Gerar pesquisas
+        // Gerar pesquisas com IA
         searchItems.clear();
-        List<String> generatedSearches = searchGenerator.generateSearches(count);
+        List<SearchItem> generatedSearches = SmartSearchGenerator.generateSmartSearches(count);
         
-        for (int i = 0; i < generatedSearches.size(); i++) {
-            SearchItem item = new SearchItem(generatedSearches.get(i), i + 1);
-            searchItems.add(item);
-        }
+        searchItems.addAll(generatedSearches);
         
         searchAdapter.notifyDataSetChanged();
         binding.searchesCard.setVisibility(View.VISIBLE);

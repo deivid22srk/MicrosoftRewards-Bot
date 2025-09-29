@@ -176,7 +176,7 @@ public class SearchAutomationService extends Service {
         try {
             // Codificar a query para URL
             String encodedQuery = URLEncoder.encode(searchQuery, "UTF-8");
-            String searchUrl = "https://www.google.com/search?q=" + encodedQuery;
+            String searchUrl = "https://www.bing.com/search?q=" + encodedQuery;
             
             // Tentar abrir no Chrome especificamente
             Intent chromeIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
