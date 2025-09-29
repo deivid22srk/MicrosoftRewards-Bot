@@ -2,10 +2,19 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "capy/**" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug/release)'
+        required: false
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
 
 jobs:
   build:
@@ -42,7 +51,12 @@ jobs:
       run: ./gradlew clean
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug --stacktrace
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+          ./gradlew assembleRelease --stacktrace
+        else
+          ./gradlew assembleDebug --stacktrace
+        fi
 
     - name: Run tests
       run: ./gradlew testDebugUnitTest --stacktrace
@@ -51,13 +65,16 @@ jobs:
       run: |
         echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
         echo "✅ APK build completed successfully" >> $GITHUB_STEP_SUMMARY
-        ls -la ./app/build/outputs/apk/debug/ >> $GITHUB_STEP_SUMMARY || echo "APK directory not found" >> $GITHUB_STEP_SUMMARY
+        echo "Build Type: ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
+        find ./app/build/outputs/apk/ -name "*.apk" -exec ls -la {} \; >> $GITHUB_STEP_SUMMARY || echo "APK files not found" >> $GITHUB_STEP_SUMMARY
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MicrosoftRewards-Bot-Debug-APK
-        path: ./app/build/outputs/apk/debug/app-debug.apk
+        name: MicrosoftRewards-Bot-${{ github.event.inputs.build_type || 'debug' }}-APK
+        path: |
+          ./app/build/outputs/apk/debug/*.apk
+          ./app/build/outputs/apk/release/*.apk
         retention-days: 30
 
     - name: Upload Test Results
