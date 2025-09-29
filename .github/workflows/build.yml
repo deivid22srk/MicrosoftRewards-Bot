@@ -38,14 +38,17 @@ jobs:
     - name: Generate APK report
       run: |
         echo "APK build completed successfully!"
-        ls -la app/build/outputs/apk/debug/
-        echo "APK size: $(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)"
+        echo "📁 Listing all APK files:"
+        find app/build/outputs/apk -name "*.apk" -type f -exec ls -la {} \;
+        echo ""
+        echo "📊 APK sizes:"
+        find app/build/outputs/apk -name "*.apk" -type f -exec du -h {} \;
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: Microsoft-Rewards-Bot-APK
-        path: ./app/build/outputs/apk/debug/app-debug.apk
+        path: ./app/build/outputs/apk/**/*.apk
         retention-days: 30
 
     - name: Upload build reports
