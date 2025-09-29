@@ -229,8 +229,7 @@ public class SmartSearchGenerator {
         final Exception[] error = new Exception[1];
         final Object lock = new Object();
         
-        GeminiSearchGenerator.generateSearchesWithGemini(count, context, apiKey, 
-            GeminiSearchGenerator.GeminiModel.FLASH_2_5, new GeminiSearchGenerator.OnSearchGeneratedListener() {
+        GeminiSearchGenerator.generateSearchesWithGemini(count, context, apiKey, new GeminiSearchGenerator.OnSearchGeneratedListener() {
             @Override
             public void onSuccess(List<SearchItem> searches) {
                 synchronized (lock) {
@@ -251,7 +250,7 @@ public class SmartSearchGenerator {
         // Aguardar resultado com timeout
         synchronized (lock) {
             try {
-                lock.wait(15000); // 15 segundos timeout
+                lock.wait(10000); // 10 segundos timeout (reduzido)
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Timeout na geração com Gemini", e);

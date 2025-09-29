@@ -160,7 +160,6 @@ public class MainActivity extends AppCompatActivity {
     
     private void generateSearchesWithGemini(int count) {
         GeminiSearchGenerator.generateSearchesWithGemini(count, this, config.getGeminiApiKey(), 
-            GeminiSearchGenerator.GeminiModel.FLASH_2_5,
             new GeminiSearchGenerator.OnSearchGeneratedListener() {
                 @Override
                 public void onSuccess(List<SearchItem> searches) {

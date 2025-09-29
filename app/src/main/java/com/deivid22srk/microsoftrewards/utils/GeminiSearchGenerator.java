@@ -61,7 +61,7 @@ public class GeminiSearchGenerator {
     // Cliente HTTP configurado para requisições à API
     private static final OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
             .build();
     
@@ -111,15 +111,10 @@ public class GeminiSearchGenerator {
             this.listener = listener;
         }
         
-        // Construtor para compatibilidade (usa modelo padrão)
-        public GenerateSearchTask(int count, Context context, String apiKey, OnSearchGeneratedListener listener) {
-            this(count, context, apiKey, DEFAULT_MODEL, listener);
-        }
-        
         @Override
         protected List<SearchItem> doInBackground(Void... voids) {
             try {
-                return generateSearchesSynchronously(count, apiKey, model);
+                return generateSingleBatch(count, apiKey, model);
             } catch (Exception e) {
                 Log.e(TAG, "Erro ao gerar pesquisas com Gemini", e);
                 errorMessage = "Erro na comunicação com Gemini AI: " + e.getMessage();
@@ -139,22 +134,26 @@ public class GeminiSearchGenerator {
     }
     
     /**
-     * Gera pesquisas de forma síncrona (para uso em AsyncTask)
+     * Gera um lote único de pesquisas (método principal)
      */
-    private static List<SearchItem> generateSearchesSynchronously(int count, String apiKey, GeminiModel model) throws IOException, JSONException {
+    private static List<SearchItem> generateSingleBatch(int count, String apiKey, GeminiModel model) throws IOException, JSONException {
+        // Limitar para evitar MAX_TOKENS
+        if (count > 15) {
+            count = 15;
+            Log.w(TAG, "Limitando para 15 pesquisas para evitar MAX_TOKENS");
+        }
         
-        // Criar prompt inteligente para o Gemini
-        String prompt = createSmartPrompt(count);
+        // Criar prompt otimizado
+        String prompt = createOptimizedPrompt(count);
         Log.d(TAG, "Usando modelo: " + model.getDisplayName() + " (" + model.getModelId() + ")");
-        Log.d(TAG, "Prompt criado para Gemini: " + prompt.substring(0, Math.min(100, prompt.length())) + "...");
+        Log.d(TAG, "Prompt criado: " + prompt);
         
         // Construir request JSON
-        JSONObject requestBody = buildGeminiRequest(prompt);
-        Log.d(TAG, "Request JSON criado: " + requestBody.toString().substring(0, Math.min(200, requestBody.toString().length())) + "...");
+        JSONObject requestBody = buildOptimizedGeminiRequest(prompt);
         
-        // Fazer requisição HTTP usando URL do modelo específico
+        // Fazer requisição HTTP
         String fullUrl = model.getApiUrl() + "?key=" + apiKey;
-        Log.d(TAG, "Fazendo requisição para: " + model.getApiUrl() + "?key=" + apiKey.substring(0, Math.min(10, apiKey.length())) + "...");
+        Log.d(TAG, "Fazendo requisição para: " + model.getApiUrl());
         
         Request request = new Request.Builder()
                 .url(fullUrl)
@@ -169,62 +168,34 @@ public class GeminiSearchGenerator {
             if (!response.isSuccessful()) {
                 String errorBody = response.body() != null ? response.body().string() : "Sem corpo na resposta";
                 Log.e(TAG, "Erro na API: " + response.code() + " - " + errorBody);
-                throw new IOException("Erro na API Gemini (" + model.getDisplayName() + "): " + response.code() + " " + response.message() + "\nDetalhes: " + errorBody);
+                throw new IOException("Erro na API Gemini: " + response.code() + " - " + errorBody);
             }
             
             String responseBody = response.body().string();
-            Log.d(TAG, "Corpo da resposta: " + responseBody.substring(0, Math.min(300, responseBody.length())) + "...");
-            return parseGeminiResponse(responseBody);
+            return parseOptimizedGeminiResponse(responseBody);
         }
     }
     
     /**
-     * Cria um prompt inteligente e detalhado para o Gemini
+     * Cria um prompt ultra-otimizado para evitar MAX_TOKENS
      */
-    private static String createSmartPrompt(int count) {
+    private static String createOptimizedPrompt(int count) {
         return String.format(
-            "Gere exatamente %d termos de pesquisa únicos em português brasileiro para Microsoft Rewards. " +
-            "Cada termo deve ter 2-5 palavras e cobrir tópicos diversos.\n\n" +
-            
-            "REQUISITOS:\n" +
-            "- Todos os termos devem ser diferentes e únicos\n" +
-            "- Use tópicos atuais de 2024-2025\n" +
-            "- Inclua variedade: tecnologia, entretenimento, saúde, educação, cultura, esportes\n" +
-            "- Linguagem natural que pessoas realmente pesquisam\n" +
-            "- Sem repetição ou termos muito similares\n\n" +
-            
-            "TÓPICOS PARA INCLUIR:\n" +
-            "- Inteligência artificial e tecnologia\n" +
-            "- Filmes, séries e entretenimento\n" +
-            "- Jogos e esports\n" +
-            "- Saúde e bem-estar\n" +
-            "- Educação e carreira\n" +
-            "- Finanças e investimentos\n" +
-            "- Culinária e receitas\n" +
-            "- Viagens e turismo\n" +
-            "- Esportes e times\n" +
-            "- Notícias e eventos atuais\n\n" +
-            
-            "FORMATO DE RESPOSTA:\n" +
-            "Retorne APENAS os termos de pesquisa, um por linha, sem numeração, sem explicações adicionais.\n\n" +
-            
-            "Exemplo:\n" +
-            "inteligência artificial 2024\n" +
-            "receitas saudáveis\n" +
-            "melhores filmes netflix\n\n" +
-            
-            "Gere %d termos únicos agora:",
-            count, count
+            "Liste %d termos de pesquisa em português, um por linha:\n" +
+            "tecnologia\n" +
+            "filmes\n" +
+            "jogos\n\n" +
+            "Agora liste %d termos únicos:",
+            Math.min(3, count), count
         );
     }
     
     /**
-     * Constrói o JSON de requisição para a API do Gemini
+     * Constrói request JSON otimizado
      */
-    private static JSONObject buildGeminiRequest(String prompt) throws JSONException {
+    private static JSONObject buildOptimizedGeminiRequest(String prompt) throws JSONException {
         JSONObject request = new JSONObject();
         
-        // Configurar conteúdo no formato correto
         JSONArray contents = new JSONArray();
         JSONObject content = new JSONObject();
         JSONArray parts = new JSONArray();
@@ -237,91 +208,103 @@ public class GeminiSearchGenerator {
         
         request.put("contents", contents);
         
-        // Configurar parâmetros de geração (simplificados para compatibilidade)
+        // Configuração mínima e otimizada
         JSONObject generationConfig = new JSONObject();
-        generationConfig.put("temperature", 0.7);
-        generationConfig.put("topK", 40);
-        generationConfig.put("topP", 0.95);
-        generationConfig.put("maxOutputTokens", 1024);
+        generationConfig.put("temperature", 0.8);
+        generationConfig.put("maxOutputTokens", 4096); // Maior limite
+        generationConfig.put("candidateCount", 1);
         
         request.put("generationConfig", generationConfig);
-        
-        // Configurar filtros de segurança (básicos)
-        JSONArray safetySettings = new JSONArray();
-        String[] categories = {
-            "HARM_CATEGORY_HARASSMENT",
-            "HARM_CATEGORY_HATE_SPEECH", 
-            "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            "HARM_CATEGORY_DANGEROUS_CONTENT"
-        };
-        
-        for (String category : categories) {
-            JSONObject safety = new JSONObject();
-            safety.put("category", category);
-            safety.put("threshold", "BLOCK_ONLY_HIGH");
-            safetySettings.put(safety);
-        }
-        
-        request.put("safetySettings", safetySettings);
         
         return request;
     }
     
     /**
-     * Analisa a resposta do Gemini e extrai os termos de pesquisa
+     * Parse otimizado da resposta do Gemini
      */
-    private static List<SearchItem> parseGeminiResponse(String responseBody) throws JSONException {
+    private static List<SearchItem> parseOptimizedGeminiResponse(String responseBody) throws JSONException {
         List<SearchItem> searchItems = new ArrayList<>();
+        
+        Log.d(TAG, "Parsing resposta: " + responseBody.substring(0, Math.min(500, responseBody.length())));
         
         JSONObject response = new JSONObject(responseBody);
         
-        // Verificar se houve erro na resposta
         if (response.has("error")) {
             JSONObject error = response.getJSONObject("error");
             throw new RuntimeException("Erro da API Gemini: " + error.getString("message"));
         }
         
-        // Extrair conteúdo gerado
         JSONArray candidates = response.getJSONArray("candidates");
         if (candidates.length() > 0) {
             JSONObject candidate = candidates.getJSONObject(0);
-            JSONObject content = candidate.getJSONObject("content");
-            JSONArray parts = content.getJSONArray("parts");
             
-            if (parts.length() > 0) {
-                String generatedText = parts.getJSONObject(0).getString("text");
+            // Log para debugging
+            Log.d(TAG, "Candidate: " + candidate.toString());
+            
+            if (candidate.has("finishReason")) {
+                String finishReason = candidate.getString("finishReason");
+                Log.d(TAG, "Finish reason: " + finishReason);
                 
-                // Processar linhas do texto gerado
-                String[] lines = generatedText.split("\n");
-                int index = 1;
-                
-                for (String line : lines) {
-                    String cleanLine = line.trim();
-                    
-                    // Pular linhas vazias ou com caracteres especiais
-                    if (!cleanLine.isEmpty() && 
-                        !cleanLine.startsWith("#") && 
-                        !cleanLine.startsWith("-") &&
-                        !cleanLine.startsWith("•") &&
-                        !cleanLine.matches("\\d+\\..*")) {
-                        
-                        // Remover numeração se presente
-                        cleanLine = cleanLine.replaceAll("^\\d+\\s*[\\.\\-]\\s*", "");
-                        
-                        if (!cleanLine.isEmpty() && cleanLine.length() > 2) {
-                            searchItems.add(new SearchItem(cleanLine, index++));
-                        }
-                    }
+                if ("MAX_TOKENS".equals(finishReason)) {
+                    Log.w(TAG, "Resposta truncada - usando fallback");
+                    return SmartSearchGenerator.generateSmartSearches(10);
                 }
+            }
+            
+            if (candidate.has("content")) {
+                JSONObject content = candidate.getJSONObject("content");
+                Log.d(TAG, "Content: " + content.toString());
+                
+                if (content.has("parts")) {
+                    JSONArray parts = content.getJSONArray("parts");
+                    
+                    if (parts.length() > 0) {
+                        JSONObject part = parts.getJSONObject(0);
+                        
+                        if (part.has("text")) {
+                            String generatedText = part.getString("text");
+                            Log.d(TAG, "Texto gerado: " + generatedText);
+                            
+                            // Processar o texto
+                            String[] lines = generatedText.split("\n");
+                            int index = 1;
+                            
+                            for (String line : lines) {
+                                String cleanLine = line.trim();
+                                
+                                if (!cleanLine.isEmpty() && 
+                                    cleanLine.length() > 2 && 
+                                    cleanLine.length() < 50 &&
+                                    !cleanLine.contains(":") &&
+                                    !cleanLine.matches("\\d+\\..*") &&
+                                    !cleanLine.startsWith("-") &&
+                                    !cleanLine.startsWith("*")) {
+                                    
+                                    searchItems.add(new SearchItem(cleanLine, index++));
+                                    Log.d(TAG, "Adicionado: " + cleanLine);
+                                }
+                            }
+                        } else {
+                            Log.w(TAG, "Part não tem texto");
+                        }
+                    } else {
+                        Log.w(TAG, "Parts array vazio");
+                    }
+                } else {
+                    Log.w(TAG, "Content não tem parts - usando fallback");
+                    return SmartSearchGenerator.generateSmartSearches(10);
+                }
+            } else {
+                Log.w(TAG, "Candidate não tem content");
             }
         }
         
-        // Se não conseguiu extrair pesquisas suficientes, gerar algumas de fallback
-        if (searchItems.size() < 5) {
-            Log.w(TAG, "Poucas pesquisas extraídas do Gemini, usando fallback");
-            return SmartSearchGenerator.generateSmartSearches(Math.max(10, searchItems.size()));
+        if (searchItems.size() < 3) {
+            Log.w(TAG, "Poucas pesquisas extraídas (" + searchItems.size() + "), usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
         }
         
+        Log.d(TAG, "Total extraído: " + searchItems.size() + " pesquisas");
         return searchItems;
     }
     
@@ -335,11 +318,9 @@ public class GeminiSearchGenerator {
         
         String trimmedKey = apiKey.trim();
         
-        // Aceitar diferentes formatos de API Key do Google
         return (trimmedKey.startsWith("AIza") || 
                 trimmedKey.startsWith("AIzaSy") ||
-                trimmedKey.startsWith("AI") ||
-                trimmedKey.matches("^[A-Za-z0-9_-]+$")) && 
+                trimmedKey.startsWith("AI")) && 
                trimmedKey.length() >= 20 && 
                trimmedKey.length() <= 100;
     }
@@ -348,11 +329,9 @@ public class GeminiSearchGenerator {
      * Testa a conectividade com a API do Gemini
      */
     public static void testGeminiConnection(String apiKey, OnSearchGeneratedListener listener) {
-        // Primeiro testa se a API está funcionando
         testApiConnection(apiKey, new ApiTestListener() {
             @Override
             public void onApiWorking() {
-                // Se API está funcionando, tenta gerar pesquisas de teste com o modelo padrão
                 generateSearchesWithGemini(3, null, apiKey, DEFAULT_MODEL, new OnSearchGeneratedListener() {
                     @Override
                     public void onSuccess(List<SearchItem> searches) {
@@ -382,12 +361,11 @@ public class GeminiSearchGenerator {
     }
     
     /**
-     * Testa se a API está funcionando fazendo uma requisição simples
+     * Testa se a API está funcionando
      */
     private static void testApiConnection(String apiKey, ApiTestListener listener) {
         new Thread(() -> {
             try {
-                // Fazer uma requisição simples para listar modelos e testar conectividade
                 String testUrl = BASE_API_URL + "?key=" + apiKey;
                 
                 Request request = new Request.Builder()
@@ -399,23 +377,20 @@ public class GeminiSearchGenerator {
                 try (Response response = client.newCall(request).execute()) {
                     if (response.isSuccessful()) {
                         String responseBody = response.body().string();
-                        Log.d(TAG, "Teste de API bem-sucedido: " + responseBody.substring(0, Math.min(200, responseBody.length())));
+                        Log.d(TAG, "Teste de API bem-sucedido");
                         
-                        // Verificar se os modelos esperados estão disponíveis
                         if (responseBody.contains("gemini-2.5-flash") || responseBody.contains("gemini-2")) {
                             listener.onApiWorking();
                         } else {
-                            listener.onApiError("Modelos Gemini 2.5 não encontrados na resposta da API");
+                            listener.onApiError("Modelos Gemini 2.5 não encontrados");
                         }
                     } else {
                         String errorBody = response.body() != null ? response.body().string() : "Sem detalhes";
-                        Log.e(TAG, "Teste de API falhou: " + response.code() + " - " + errorBody);
-                        listener.onApiError("API retornou erro " + response.code() + ": " + errorBody);
+                        listener.onApiError("API erro " + response.code() + ": " + errorBody);
                     }
                 }
                 
             } catch (Exception e) {
-                Log.e(TAG, "Erro no teste de conectividade", e);
                 listener.onApiError("Erro de conectividade: " + e.getMessage());
             }
         }).start();
