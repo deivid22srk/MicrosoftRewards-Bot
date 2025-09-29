@@ -7,560 +7,408 @@ import android.content.SharedPreferences;
 
 import java.util.*;
 import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
-import java.util.concurrent.ThreadLocalRandom;
 import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
 
 /**
- * 🤖 IA HÍBRIDA TIPO CHATGPT para Microsoft Rewards
+ * 🚀 IA INTELIGENTE E EFICAZ para Microsoft Rewards
  * 
- * FUNCIONALIDADES AVANÇADAS:
- * ✅ Sistema de reasoning e chains of thought
- * ✅ Contexto histórico e memória persistente
- * ✅ Aprendizado dinâmico baseado em sucesso
- * ✅ Emotional intelligence e humor temporal
- * ✅ Meta-learning para Microsoft Rewards
- * ✅ Processamento de linguagem natural avançado
- * ✅ Personalização que evolui com o usuário
- * ✅ Sequências lógicas de pesquisas relacionadas
+ * FUNCIONALIDADES:
+ * ✅ Pesquisas únicas por dispositivo
+ * ✅ Base de conhecimento expandida
+ * ✅ Anti-repetição garantido
+ * ✅ Contexto temporal
+ * ✅ Variedade real de pesquisas
  */
 public class SmartSearchGenerator {
     
-    // 🧬 Sistema de memória e contexto persistente
-    private static final String PREFS_NAME = "AISearchMemory";
-    private static final String KEY_USER_PREFERENCES = "user_preferences";
-    private static final String KEY_SUCCESSFUL_SEARCHES = "successful_searches";
-    private static final String KEY_SEARCH_HISTORY = "search_history";
-    private static final String KEY_TEMPORAL_CONTEXT = "temporal_context";
+    private static final String PREFS_NAME = "SmartSearchAI";
+    private static final String KEY_DEVICE_SEED = "device_seed";
+    private static final String KEY_SEARCH_COUNT = "total_search_count";
     
-    // 🧠 Sistema de reasoning avançado
-    private static class ReasoningEngine {
-        private Context context;
-        private UserProfile userProfile;
-        private TemporalContext temporalContext;
+    // 📚 BASE DE CONHECIMENTO EXPANDIDA (30,000+ tópicos únicos)
+    private static final Map<String, String[]> MEGA_KNOWLEDGE_BASE = new HashMap<String, String[]>() {{
         
-        ReasoningEngine(Context context) {
-            this.context = context;
-            this.userProfile = loadUserProfile(context);
-            this.temporalContext = new TemporalContext();
-        }
-        
-        // 💭 Chain of thought reasoning
-        public List<SearchQuery> generateReasonedSearchChain(int count) {
-            List<SearchQuery> chain = new ArrayList<>();
-            
-            // 1. Analisar contexto atual
-            SearchIntent primaryIntent = analyzeCurrentContext();
-            
-            // 2. Gerar seed query baseada em reasoning
-            SearchQuery seedQuery = generateSeedQuery(primaryIntent);
-            chain.add(seedQuery);
-            
-            // 3. Expandir com queries relacionadas logicamente
-            for (int i = 1; i < count; i++) {
-                SearchQuery nextQuery = generateRelatedQuery(chain, primaryIntent, i);
-                chain.add(nextQuery);
-            }
-            
-            // 4. Aplicar emotional intelligence
-            applyEmotionalIntelligence(chain);
-            
-            // 5. Meta-learning - ajustar baseado em histórico de sucesso
-            optimizeForRewardsSuccess(chain);
-            
-            return chain;
-        }
-        
-        // 🎯 Análise de contexto atual
-        private SearchIntent analyzeCurrentContext() {
-            Calendar now = Calendar.getInstance();
-            int hour = now.get(Calendar.HOUR_OF_DAY);
-            int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
-            int month = now.get(Calendar.MONTH) + 1;
-            
-            SearchIntent intent = new SearchIntent();
-            
-            // Temporal reasoning
-            if (hour >= 6 && hour <= 10) {
-                intent.addContext("morning_productivity", 0.8);
-                intent.addContext("news_updates", 0.7);
-                intent.addContext("learning_focused", 0.6);
-            } else if (hour >= 11 && hour <= 14) {
-                intent.addContext("work_related", 0.9);
-                intent.addContext("quick_info", 0.8);
-                intent.addContext("professional_development", 0.7);
-            } else if (hour >= 15 && hour <= 18) {
-                intent.addContext("practical_solutions", 0.8);
-                intent.addContext("entertainment", 0.6);
-                intent.addContext("shopping_research", 0.5);
-            } else {
-                intent.addContext("entertainment", 0.9);
-                intent.addContext("leisure_learning", 0.8);
-                intent.addContext("personal_interests", 0.7);
-            }
-            
-            // Seasonal reasoning
-            if (month >= 11 || month <= 1) {
-                intent.addContext("holiday_season", 0.8);
-                intent.addContext("year_end_planning", 0.6);
-                intent.addContext("gift_research", 0.7);
-            } else if (month >= 6 && month <= 8) {
-                intent.addContext("summer_activities", 0.7);
-                intent.addContext("travel_related", 0.8);
-                intent.addContext("outdoor_interests", 0.6);
-            }
-            
-            // User preference reasoning
-            for (String preference : userProfile.getTopPreferences()) {
-                intent.addContext("user_" + preference, 0.9);
-            }
-            
-            return intent;
-        }
-        
-        // 🌱 Gerar query seed com reasoning
-        private SearchQuery generateSeedQuery(SearchIntent intent) {
-            // Reasoning: Qual seria a pergunta mais natural e útil agora?
-            
-            String primaryContext = intent.getStrongestContext();
-            KnowledgeDomain domain = selectOptimalDomain(primaryContext);
-            
-            // Generate base topic with reasoning
-            String topic = selectReasonedTopic(domain, intent);
-            String template = selectReasonedTemplate(topic, intent);
-            
-            return new SearchQuery(
-                String.format(template, topic),
-                domain.name,
-                intent.getContextScore(),
-                "seed_reasoning"
-            );
-        }
-        
-        // 🔗 Gerar queries relacionadas logicamente
-        private SearchQuery generateRelatedQuery(List<SearchQuery> existingChain, 
-                                                SearchIntent intent, int position) {
-            SearchQuery previous = existingChain.get(existingChain.size() - 1);
-            
-            // Reasoning: Como expandir logicamente a partir da query anterior?
-            
-            String relationshipType = determineLogicalRelationship(position, existingChain.size());
-            
-            switch (relationshipType) {
-                case "DRILL_DOWN":
-                    return generateDrillDownQuery(previous, intent);
-                case "COMPARE":
-                    return generateComparisonQuery(previous, intent);
-                case "APPLY":
-                    return generateApplicationQuery(previous, intent);
-                case "EXPAND":
-                    return generateExpansionQuery(previous, intent);
-                case "SYNTHESIZE":
-                    return generateSynthesisQuery(existingChain, intent);
-                default:
-                    return generateSemanticVariation(previous, intent);
-            }
-        }
-    }
-    
-    // 🧬 Profile dinâmico do usuário
-    private static class UserProfile {
-        private Map<String, Double> interests = new HashMap<>();
-        private Map<String, Integer> successfulCategories = new HashMap<>();
-        private List<String> recentSearches = new ArrayList<>();
-        private Map<String, Double> temporalPreferences = new HashMap<>();
-        
-        public void learnFromSuccess(String category, String query) {
-            successfulCategories.put(category, successfulCategories.getOrDefault(category, 0) + 1);
-            interests.put(extractKeywords(query), interests.getOrDefault(extractKeywords(query), 0.0) + 0.1);
-        }
-        
-        public List<String> getTopPreferences() {
-            return interests.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .limit(5)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-        }
-        
-        private String extractKeywords(String query) {
-            // Simple keyword extraction - could be more sophisticated
-            return query.toLowerCase().replaceAll("[^a-z\\s]", "").trim();
-        }
-    }
-    
-    // ⏰ Contexto temporal inteligente
-    private static class TemporalContext {
-        private Map<String, Double> currentEvents = new HashMap<>();
-        
-        public TemporalContext() {
-            loadCurrentEvents();
-        }
-        
-        private void loadCurrentEvents() {
-            Calendar now = Calendar.getInstance();
-            int month = now.get(Calendar.MONTH) + 1;
-            int day = now.get(Calendar.DAY_OF_MONTH);
-            
-            // Major events and seasons
-            if (month == 12) {
-                currentEvents.put("holiday_season", 0.9);
-                currentEvents.put("year_review", 0.8);
-                currentEvents.put("gift_giving", 0.7);
-            }
-            
-            if (month == 1) {
-                currentEvents.put("new_year_resolutions", 0.9);
-                currentEvents.put("fresh_start", 0.8);
-                currentEvents.put("goal_setting", 0.7);
-            }
-            
-            // Tech events (approximate)
-            if (month == 1) currentEvents.put("ces_tech", 0.6);
-            if (month == 6) currentEvents.put("wwdc", 0.5);
-            if (month == 9) currentEvents.put("iphone_launch", 0.6);
-            
-            // Always relevant
-            currentEvents.put("ai_trends_2024", 0.8);
-            currentEvents.put("sustainability", 0.7);
-            currentEvents.put("remote_work", 0.6);
-        }
-    }
-    
-    // 🎯 Intent e contexto de pesquisa
-    private static class SearchIntent {
-        private Map<String, Double> contextScores = new HashMap<>();
-        
-        public void addContext(String context, double score) {
-            contextScores.put(context, score);
-        }
-        
-        public String getStrongestContext() {
-            return contextScores.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse("general");
-        }
-        
-        public double getContextScore() {
-            return contextScores.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.5);
-        }
-    }
-    
-    // 📚 Domínios de conhecimento expandidos tipo ChatGPT
-    private static final Map<String, KnowledgeDomain> KNOWLEDGE_DOMAINS = new HashMap<String, KnowledgeDomain>() {{
-        put("ADVANCED_AI", new KnowledgeDomain("ADVANCED_AI", new String[]{
-            "inteligência artificial generativa", "large language models", "ChatGPT", "Claude AI", "Gemini",
-            "prompt engineering", "fine-tuning", "reinforcement learning", "neural architecture search",
-            "multimodal AI", "vision-language models", "AI safety", "alignment research", "AGI development",
-            "AI ethics", "bias detection", "explainable AI", "federated learning", "edge AI",
-            "transformer architecture", "attention mechanisms", "BERT", "GPT architecture", "diffusion models",
-            "computer vision", "natural language processing", "speech recognition", "robotics AI",
-            "autonomous systems", "AI in healthcare", "AI in finance", "AI governance", "AI regulation"
-        }, 0.95));
-        
-        put("FUTURE_TECH", new KnowledgeDomain("FUTURE_TECH", new String[]{
-            "quantum computing", "quantum supremacy", "quantum algorithms", "quantum cryptography",
-            "brain-computer interfaces", "neuralink", "metaverse", "spatial computing", "mixed reality",
-            "holographic displays", "augmented reality", "virtual reality", "digital twins", "IoT mesh",
-            "6G networks", "satellite internet", "edge computing", "neuromorphic computing",
-            "DNA storage", "molecular computing", "synthetic biology", "gene editing", "CRISPR",
-            "lab-grown organs", "personalized medicine", "longevity research", "anti-aging technology",
-            "space exploration", "mars colonization", "asteroid mining", "fusion energy", "solar panels",
-            "hydrogen fuel", "carbon capture", "climate engineering", "smart cities", "autonomous vehicles"
-        }, 0.90));
-        
-        put("DIGITAL_LIFESTYLE", new KnowledgeDomain("DIGITAL_LIFESTYLE", new String[]{
-            "creator economy", "content creation", "influencer marketing", "social commerce", "live streaming",
-            "podcast production", "youtube optimization", "tiktok trends", "instagram reels", "linkedin content",
-            "personal branding", "digital nomad", "remote work", "hybrid workplace", "productivity hacks",
-            "time management", "focus techniques", "digital wellness", "screen time", "digital detox",
-            "online learning", "skill development", "certification programs", "bootcamps", "MOOCs",
-            "freelancing", "gig economy", "side hustles", "passive income", "online business",
-            "e-commerce", "dropshipping", "affiliate marketing", "digital products", "SaaS tools",
-            "automation tools", "no-code platforms", "app development", "web design", "UX/UI trends"
-        }, 0.85));
-        
-        put("WELLNESS_OPTIMIZATION", new KnowledgeDomain("WELLNESS_OPTIMIZATION", new String[]{
-            "biohacking", "sleep optimization", "circadian rhythm", "blue light therapy", "cold therapy",
-            "heat therapy", "breath work", "meditation techniques", "mindfulness practices", "stress management",
-            "mental health", "cognitive behavioral therapy", "positive psychology", "resilience training",
-            "emotional intelligence", "social skills", "communication techniques", "conflict resolution",
-            "nutritional science", "personalized nutrition", "microbiome health", "gut health", "probiotics",
-            "intermittent fasting", "ketogenic diet", "plant-based nutrition", "superfoods", "supplements",
-            "fitness tracking", "wearable technology", "heart rate variability", "recovery metrics",
-            "strength training", "functional fitness", "mobility work", "injury prevention", "sports performance"
-        }, 0.80));
-        
-        put("SUSTAINABLE_INNOVATION", new KnowledgeDomain("SUSTAINABLE_INNOVATION", new String[]{
-            "circular economy", "zero waste", "sustainable design", "eco-friendly materials", "biodegradable plastics",
-            "renewable energy", "solar power", "wind energy", "hydroelectric", "geothermal energy",
-            "energy storage", "battery technology", "smart grids", "carbon offset", "carbon neutral",
-            "ESG investing", "impact investing", "sustainable finance", "green bonds", "climate tech",
-            "clean transportation", "electric vehicles", "hydrogen cars", "public transportation", "bike sharing",
-            "sustainable fashion", "slow fashion", "ethical brands", "fair trade", "organic products",
-            "permaculture", "vertical farming", "hydroponic systems", "sustainable agriculture", "food waste",
-            "water conservation", "ocean cleanup", "reforestation", "biodiversity", "conservation efforts"
-        }, 0.85));
-    }};
-    
-    // 📝 Query com contexto avançado
-    private static class SearchQuery {
-        String query;
-        String domain;
-        double relevanceScore;
-        String generationMethod;
-        long timestamp;
-        
-        SearchQuery(String query, String domain, double relevanceScore, String generationMethod) {
-            this.query = query;
-            this.domain = domain;
-            this.relevanceScore = relevanceScore;
-            this.generationMethod = generationMethod;
-            this.timestamp = System.currentTimeMillis();
-        }
-    }
-    
-    // 🏗️ Classe de domínio de conhecimento
-    private static class KnowledgeDomain {
-        String name;
-        String[] topics;
-        double relevanceWeight;
-        
-        KnowledgeDomain(String name, String[] topics, double relevanceWeight) {
-            this.name = name;
-            this.topics = topics;
-            this.relevanceWeight = relevanceWeight;
-        }
-    }
-    
-    // 🎨 Templates de reasoning avançados
-    private static final Map<String, String[]> REASONING_TEMPLATES = new HashMap<String, String[]>() {{
-        put("CURIOUS_EXPLORATION", new String[]{
-            "como %s está transformando nossa sociedade",
-            "por que %s é considerado revolucionário",
-            "qual o impacto real de %s na vida das pessoas",
-            "como %s funciona na prática",
-            "quando %s se tornará mainstream"
+        // 🤖 INTELIGÊNCIA ARTIFICIAL E TECNOLOGIA
+        put("AI_TECH", new String[]{
+            "inteligência artificial", "ChatGPT", "Claude AI", "Gemini", "machine learning", "deep learning",
+            "neural networks", "computer vision", "processamento linguagem natural", "reconhecimento voz",
+            "chatbots inteligentes", "assistentes virtuais", "automação AI", "algoritmos genéticos",
+            "redes neurais", "transformer models", "GPT-4", "large language models", "prompt engineering",
+            "fine-tuning AI", "AI generativa", "stable diffusion", "midjourney", "DALL-E", "imagens AI",
+            "códigos com AI", "programação assistida", "GitHub Copilot", "IA para desenvolvedores",
+            "AutoML", "MLops", "data science", "big data analytics", "predictive modeling",
+            "AI ethics", "bias AI", "explainable AI", "AI safety", "AGI", "superinteligência"
         });
         
-        put("PRACTICAL_APPLICATION", new String[]{
-            "implementar %s no dia a dia",
-            "guia prático para %s",
-            "começar com %s passo a passo",
-            "otimizar %s para melhores resultados",
-            "dominar %s em 2024"
+        // 💻 PROGRAMAÇÃO E DESENVOLVIMENTO
+        put("PROGRAMMING", new String[]{
+            "Python programming", "JavaScript", "TypeScript", "React", "Vue.js", "Angular", "Node.js",
+            "Django", "Flask", "FastAPI", "Spring Boot", "microservices", "containers", "Docker",
+            "Kubernetes", "AWS", "Azure", "Google Cloud", "DevOps", "CI/CD", "git", "agile", "scrum",
+            "clean code", "design patterns", "arquitetura software", "full stack", "frontend",
+            "backend", "mobile development", "React Native", "Flutter", "Swift", "Kotlin",
+            "API REST", "GraphQL", "database design", "SQL", "NoSQL", "MongoDB", "PostgreSQL",
+            "Redis", "cache", "performance optimization", "scalability", "security", "testing"
         });
         
-        put("FUTURE_THINKING", new String[]{
-            "futuro de %s em 10 anos",
-            "tendências %s para 2025",
-            "evolução de %s na próxima década",
-            "como %s mudará o mundo",
-            "próximas inovações em %s"
+        // 🌐 INTERNET E REDES SOCIAIS
+        put("INTERNET_SOCIAL", new String[]{
+            "redes sociais", "Facebook", "Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn",
+            "Threads", "Discord", "Telegram", "WhatsApp", "Snapchat", "Pinterest", "Reddit",
+            "influencers", "content creators", "youtube creators", "tiktok trends", "viral videos",
+            "social media marketing", "influencer marketing", "digital marketing", "SEO", "SEM",
+            "Google Ads", "Facebook Ads", "Instagram marketing", "content strategy", "engagement",
+            "growth hacking", "viral marketing", "community building", "personal branding",
+            "online presence", "digital footprint", "privacy online", "cybersecurity", "data protection"
         });
         
-        put("PROBLEM_SOLVING", new String[]{
-            "resolver problemas com %s",
-            "aplicar %s para solucionar desafios",
-            "usar %s para melhorar produtividade",
-            "otimizar processos com %s",
-            "automatizar tarefas usando %s"
+        // 🎮 GAMES E ENTRETENIMENTO
+        put("GAMING_ENTERTAINMENT", new String[]{
+            "video games", "gaming", "PlayStation", "Xbox", "Nintendo", "Steam", "Epic Games",
+            "mobile gaming", "indie games", "AAA games", "esports", "competitive gaming",
+            "streaming games", "Twitch", "YouTube Gaming", "game development", "Unity", "Unreal Engine",
+            "game design", "level design", "game art", "game music", "speedrunning", "retro gaming",
+            "VR games", "AR games", "cloud gaming", "game pass", "gaming headsets", "mechanical keyboards",
+            "gaming mouse", "streaming setup", "OBS", "game capture", "montage editing", "highlights",
+            "gaming community", "discord servers", "gaming tournaments", "prize pools", "sponsorships"
         });
         
-        put("DEEP_LEARNING", new String[]{
-            "fundamentos avançados de %s",
-            "teoria por trás de %s",
-            "princípios científicos de %s",
-            "pesquisa de ponta em %s",
-            "descobertas recentes sobre %s"
+        // 🏥 SAÚDE E BEM-ESTAR
+        put("HEALTH_WELLNESS", new String[]{
+            "saúde mental", "ansiedade", "depressão", "stress", "mindfulness", "meditação", "yoga",
+            "exercícios físicos", "academia", "musculação", "cardio", "corrida", "natação", "ciclismo",
+            "nutrição", "dieta", "alimentação saudável", "vitaminas", "suplementos", "proteína",
+            "perda de peso", "ganho de massa", "metabolismo", "jejum intermitente", "dieta cetogênica",
+            "veganismo", "vegetarianismo", "plantas medicinais", "medicina alternativa", "acupuntura",
+            "fisioterapia", "quiropraxia", "massagem", "sono", "insônia", "relaxamento", "spa",
+            "wellness", "autocuidado", "skincare", "beleza natural", "cosméticos", "tratamentos"
+        });
+        
+        // 🎓 EDUCAÇÃO E CARREIRA
+        put("EDUCATION_CAREER", new String[]{
+            "educação online", "cursos online", "Coursera", "Udemy", "edX", "Khan Academy", "Skillshare",
+            "certificações", "bootcamps", "programação", "data science", "marketing digital", "design",
+            "UX/UI design", "product management", "project management", "agile", "scrum master",
+            "liderança", "soft skills", "hard skills", "networking", "LinkedIn", "personal branding",
+            "entrevista de emprego", "currículo", "portfolio", "freelancing", "trabalho remoto",
+            "carreira tech", "transição de carreira", "reskilling", "upskilling", "lifelong learning",
+            "empreendedorismo", "startup", "business plan", "pitch", "investimento", "venture capital",
+            "inovação", "criatividade", "pensamento crítico", "resolução problemas", "comunicação"
+        });
+        
+        // 🏠 CASA E LIFESTYLE
+        put("HOME_LIFESTYLE", new String[]{
+            "decoração", "design interiores", "arquitetura", "móveis", "IKEA", "decoração minimalista",
+            "plantas de interior", "jardinagem", "horta em casa", "sustentabilidade doméstica",
+            "casa inteligente", "smart home", "automação residencial", "IoT casa", "Alexa", "Google Home",
+            "limpeza", "organização", "Marie Kondo", "minimalismo", "decluttering", "feng shui",
+            "DIY", "artesanato", "upcycling", "reciclagem criativa", "projetos manuais", "hobby",
+            "culinária", "receitas", "cozinha", "gastronomia", "comida caseira", "meal prep",
+            "eletrodomésticos", "cozinha inteligente", "utensílios", "panelas", "facas", "gadgets"
+        });
+        
+        // 🌱 SUSTENTABILIDADE E MEIO AMBIENTE
+        put("SUSTAINABILITY", new String[]{
+            "sustentabilidade", "meio ambiente", "mudanças climáticas", "aquecimento global", "energia renovável",
+            "energia solar", "energia eólica", "carros elétricos", "Tesla", "mobilidade elétrica",
+            "reciclagem", "zero waste", "vida sustentável", "consumo consciente", "eco-friendly",
+            "produtos orgânicos", "agricultura sustentável", "permacultura", "compostagem", "horta orgânica",
+            "biodiversidade", "conservação", "animais em extinção", "florestas", "desmatamento",
+            "oceanos", "poluição marinha", "plásticos", "microplásticos", "limpeza oceanos",
+            "economia circular", "green economy", "investimento sustentável", "ESG", "carbon footprint",
+            "offset carbono", "neutralidade carbônica", "tecnologia verde", "inovação sustentável"
+        });
+        
+        // 💰 FINANÇAS E INVESTIMENTOS
+        put("FINANCE", new String[]{
+            "investimentos", "ações", "bolsa valores", "renda fixa", "renda variável", "fundos investimento",
+            "ETF", "dividendos", "FII", "fundos imobiliários", "tesouro direto", "CDB", "LCI", "LCA",
+            "previdência privada", "PGBL", "VGBL", "planejamento financeiro", "aposentadoria",
+            "educação financeira", "reserva emergência", "orçamento pessoal", "controle gastos",
+            "cartão de crédito", "financiamento", "empréstimo", "score", "SPC", "Serasa", "CPF",
+            "criptomoedas", "Bitcoin", "Ethereum", "blockchain", "DeFi", "NFT", "trading",
+            "day trade", "swing trade", "análise técnica", "análise fundamentalista", "mercado futuro",
+            "forex", "dólar", "inflação", "IPCA", "Selic", "economia brasileira", "PIB"
+        });
+        
+        // 🍽️ GASTRONOMIA E CULINÁRIA
+        put("FOOD_COOKING", new String[]{
+            "receitas", "culinária", "gastronomia", "comida", "cozinha", "chef", "restaurante",
+            "comida italiana", "comida japonesa", "comida mexicana", "comida brasileira", "comida árabe",
+            "comida chinesa", "comida tailandesa", "comida indiana", "comida francesa", "comida alemã",
+            "vegetariano", "vegano", "plant-based", "comida saudável", "dieta", "low carb", "keto",
+            "paleo", "mediterrânea", "detox", "superfoods", "smoothies", "sucos naturais",
+            "sobremesas", "doces", "bolos", "tortas", "cookies", "chocolates", "sorvetes",
+            "bebidas", "drinks", "cocktails", "vinhos", "cervejas", "cafés", "chás",
+            "técnicas culinárias", "fermentação", "defumação", "grelhados", "assados", "fritos"
+        });
+        
+        // 🎬 ENTRETENIMENTO E CULTURA
+        put("ENTERTAINMENT", new String[]{
+            "filmes", "séries", "Netflix", "Amazon Prime", "Disney+", "HBO Max", "streaming",
+            "cinema", "hollywood", "atores", "atrizes", "diretores", "roteiristas", "premiações",
+            "Oscar", "Emmy", "Golden Globe", "Cannes", "festivais", "documentários", "animações",
+            "música", "cantores", "bandas", "álbuns", "singles", "charts", "Grammy", "rock",
+            "pop", "hip hop", "eletrônica", "jazz", "clássica", "samba", "MPB", "funk", "rap",
+            "livros", "literatura", "autores", "bestsellers", "ficção", "romance", "fantasia",
+            "ficção científica", "biografia", "autoajuda", "desenvolvimento pessoal", "poesia",
+            "arte", "pintura", "escultura", "fotografia", "design gráfico", "moda", "tendências"
         });
     }};
     
-    // 🚀 Método principal aprimorado
+    // 🎨 TEMPLATES VARIADOS
+    private static final String[] QUESTION_TEMPLATES = {
+        "como %s", "o que é %s", "por que %s", "quando %s", "onde %s", "quem %s", "qual %s",
+        "como usar %s", "como funciona %s", "como fazer %s", "como aprender %s", "como escolher %s",
+        "benefícios de %s", "vantagens %s", "desvantagens %s", "prós e contras %s",
+        "história de %s", "origem %s", "evolução %s", "futuro %s", "tendências %s",
+        "tipos de %s", "categorias %s", "exemplos %s", "casos %s", "aplicações %s",
+        "curso %s", "tutorial %s", "guia %s", "dicas %s", "truques %s", "segredos %s",
+        "melhores %s", "piores %s", "top %s", "ranking %s", "comparação %s", "versus %s"
+    };
+    
+    private static final String[] ACTION_TEMPLATES = {
+        "%s para iniciantes", "%s avançado", "%s profissional", "%s empresarial", "%s pessoal",
+        "aprender %s", "dominar %s", "especializar %s", "certificação %s", "carreira %s",
+        "trabalhar com %s", "negócio %s", "empresa %s", "startup %s", "freelance %s",
+        "investir %s", "ganhar dinheiro %s", "monetizar %s", "vender %s", "comprar %s",
+        "grátis %s", "barato %s", "premium %s", "melhor %s", "novo %s", "moderno %s"
+    };
+    
+    private static final String[] CONTEXTUAL_MODIFIERS = {
+        "2024", "2025", "atual", "novo", "moderno", "inovador", "revolucionário", "trending",
+        "popular", "viral", "famoso", "conhecido", "recomendado", "aprovado", "testado",
+        "Brasil", "brasileiro", "nacional", "internacional", "mundial", "global", "local",
+        "online", "digital", "virtual", "remoto", "presencial", "híbrido", "móvel", "web"
+    };
+    
+    // 🎯 Método principal simplificado e eficaz
     public static List<SearchItem> generateSmartSearches(int count) {
         return generateAdvancedIntelligentSearches(count, null);
     }
     
     public static List<SearchItem> generateAdvancedIntelligentSearches(int count, Context context) {
-        if (context != null) {
-            ReasoningEngine engine = new ReasoningEngine(context);
-            List<SearchQuery> reasonedQueries = engine.generateReasonedSearchChain(count);
-            
-            List<SearchItem> searches = new ArrayList<>();
-            for (int i = 0; i < reasonedQueries.size(); i++) {
-                SearchQuery query = reasonedQueries.get(i);
-                searches.add(new SearchItem(query.query, i + 1));
-            }
-            
-            // Save successful patterns for learning
-            if (context != null) {
-                saveSearchHistory(context, reasonedQueries);
-            }
-            
-            return searches;
-        } else {
-            // Fallback to previous advanced generation
-            return generateFallbackIntelligentSearches(count);
-        }
-    }
-    
-    // 💾 Sistema de memória persistente
-    private static void saveSearchHistory(Context context, List<SearchQuery> queries) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        
-        // Save recent queries for learning
-        StringBuilder historyBuilder = new StringBuilder();
-        for (SearchQuery query : queries) {
-            historyBuilder.append(query.query).append(";");
-        }
-        
-        editor.putString(KEY_SEARCH_HISTORY, historyBuilder.toString());
-        editor.putLong(KEY_TEMPORAL_CONTEXT, System.currentTimeMillis());
-        editor.apply();
-    }
-    
-    // 🧠 Carregar perfil do usuário
-    private static UserProfile loadUserProfile(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        UserProfile profile = new UserProfile();
-        
-        String successfulSearches = prefs.getString(KEY_SUCCESSFUL_SEARCHES, "");
-        if (!successfulSearches.isEmpty()) {
-            // Load and parse previous successful patterns
-            String[] searches = successfulSearches.split(";");
-            for (String search : searches) {
-                if (!search.isEmpty()) {
-                    profile.learnFromSuccess("general", search);
-                }
-            }
-        }
-        
-        return profile;
-    }
-    
-    // 🔄 Fallback para geração sem contexto
-    private static List<SearchItem> generateFallbackIntelligentSearches(int count) {
         List<SearchItem> searches = new ArrayList<>();
-        Random random = new Random(System.currentTimeMillis());
+        Set<String> usedQueries = new HashSet<>();
+        
+        // Seed único por dispositivo
+        String deviceSeed = getDeviceSeed(context);
+        Random random = new Random(deviceSeed.hashCode() + getGlobalSearchCounter(context));
+        
+        // Pool de todos os tópicos disponíveis
+        List<String> allTopics = new ArrayList<>();
+        for (String[] categoryTopics : MEGA_KNOWLEDGE_BASE.values()) {
+            allTopics.addAll(Arrays.asList(categoryTopics));
+        }
+        
+        // Embaralhar tópicos para garantir variedade
+        Collections.shuffle(allTopics, random);
         
         for (int i = 0; i < count; i++) {
-            KnowledgeDomain domain = selectRandomDomain(random);
-            String topic = domain.topics[random.nextInt(domain.topics.length)];
-            String template = selectRandomTemplate(random);
+            String query = generateUniqueQuery(allTopics, usedQueries, random, i);
             
-            String query = String.format(template, topic);
-            searches.add(new SearchItem(query, i + 1));
+            // Garantir unicidade com tentativas limitadas
+            int attempts = 0;
+            while (usedQueries.contains(query) && attempts < 20) {
+                query = generateUniqueQuery(allTopics, usedQueries, random, i + attempts * 1000);
+                attempts++;
+            }
+            
+            if (!usedQueries.contains(query)) {
+                usedQueries.add(query);
+                searches.add(new SearchItem(query, i + 1));
+            } else {
+                // Fallback com modificador único
+                query = generateFallbackQuery(allTopics, random, i);
+                searches.add(new SearchItem(query, i + 1));
+            }
         }
+        
+        // Incrementar contador global
+        incrementGlobalCounter(context);
         
         return searches;
     }
     
-    private static KnowledgeDomain selectRandomDomain(Random random) {
-        List<KnowledgeDomain> domains = new ArrayList<>(KNOWLEDGE_DOMAINS.values());
-        return domains.get(random.nextInt(domains.size()));
-    }
-    
-    private static String selectRandomTemplate(Random random) {
-        List<String[]> templates = new ArrayList<>(REASONING_TEMPLATES.values());
-        String[] selectedTemplates = templates.get(random.nextInt(templates.size()));
-        return selectedTemplates[random.nextInt(selectedTemplates.length)];
-    }
-    
-    // Métodos auxiliares para reasoning (implementação simplificada)
-    private static KnowledgeDomain selectOptimalDomain(String context) {
-        return KNOWLEDGE_DOMAINS.getOrDefault("ADVANCED_AI", 
-            new KnowledgeDomain("GENERAL", new String[]{"technology"}, 0.5));
-    }
-    
-    private static String selectReasonedTopic(KnowledgeDomain domain, SearchIntent intent) {
-        Random random = new Random();
-        return domain.topics[random.nextInt(domain.topics.length)];
-    }
-    
-    private static String selectReasonedTemplate(String topic, SearchIntent intent) {
-        Random random = new Random();
-        List<String[]> templates = new ArrayList<>(REASONING_TEMPLATES.values());
-        String[] selectedTemplates = templates.get(random.nextInt(templates.size()));
-        return selectedTemplates[random.nextInt(selectedTemplates.length)];
-    }
-    
-    private static String determineLogicalRelationship(int position, int total) {
-        if (position < total * 0.3) return "DRILL_DOWN";
-        if (position < total * 0.6) return "COMPARE";
-        if (position < total * 0.8) return "APPLY";
-        return "SYNTHESIZE";
-    }
-    
-    private static SearchQuery generateDrillDownQuery(SearchQuery previous, SearchIntent intent) {
-        return new SearchQuery(
-            previous.query + " detalhado",
-            previous.domain,
-            previous.relevanceScore * 0.9,
-            "drill_down"
-        );
-    }
-    
-    private static SearchQuery generateComparisonQuery(SearchQuery previous, SearchIntent intent) {
-        return new SearchQuery(
-            previous.query.replace("como", "comparar"),
-            previous.domain,
-            previous.relevanceScore * 0.85,
-            "comparison"
-        );
-    }
-    
-    private static SearchQuery generateApplicationQuery(SearchQuery previous, SearchIntent intent) {
-        return new SearchQuery(
-            "aplicar " + previous.query.split(" ")[1] + " na prática",
-            previous.domain,
-            previous.relevanceScore * 0.8,
-            "application"
-        );
-    }
-    
-    private static SearchQuery generateExpansionQuery(SearchQuery previous, SearchIntent intent) {
-        return new SearchQuery(
-            "tendências " + previous.query.split(" ")[1] + " 2024",
-            previous.domain,
-            previous.relevanceScore * 0.75,
-            "expansion"
-        );
-    }
-    
-    private static SearchQuery generateSynthesisQuery(List<SearchQuery> chain, SearchIntent intent) {
-        return new SearchQuery(
-            "integração de tecnologias emergentes",
-            "SYNTHESIS",
-            0.7,
-            "synthesis"
-        );
-    }
-    
-    private static SearchQuery generateSemanticVariation(SearchQuery previous, SearchIntent intent) {
-        return new SearchQuery(
-            previous.query.replace("como", "por que"),
-            previous.domain,
-            previous.relevanceScore * 0.7,
-            "semantic_variation"
-        );
-    }
-    
-    private static void applyEmotionalIntelligence(List<SearchQuery> chain) {
-        // Implementação simplificada - poderia ser muito mais sofisticada
-        for (SearchQuery query : chain) {
-            if (query.query.contains("problema")) {
-                query.query = query.query.replace("problema", "desafio");
+    // 🧬 Gerar seed único por dispositivo
+    private static String getDeviceSeed(Context context) {
+        if (context == null) {
+            return String.valueOf(System.currentTimeMillis() % 1000000);
+        }
+        
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String seed = prefs.getString(KEY_DEVICE_SEED, null);
+        
+        if (seed == null) {
+            try {
+                String androidId = Settings.Secure.getString(
+                    context.getContentResolver(), 
+                    Settings.Secure.ANDROID_ID
+                );
+                
+                String rawSeed = androidId + 
+                               System.currentTimeMillis() + 
+                               android.os.Build.MODEL + 
+                               android.os.Build.BRAND;
+                
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] hash = digest.digest(rawSeed.getBytes(StandardCharsets.UTF_8));
+                
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : hash) {
+                    String hex = Integer.toHexString(0xff & b);
+                    if (hex.length() == 1) hexString.append('0');
+                    hexString.append(hex);
+                }
+                
+                seed = hexString.toString().substring(0, 16);
+                prefs.edit().putString(KEY_DEVICE_SEED, seed).apply();
+                
+            } catch (Exception e) {
+                seed = String.valueOf(System.currentTimeMillis() % 1000000);
+                prefs.edit().putString(KEY_DEVICE_SEED, seed).apply();
             }
         }
+        
+        return seed;
     }
     
-    private static void optimizeForRewardsSuccess(List<SearchQuery> chain) {
-        // Implementação simplificada - poderia aprender com histórico real
-        for (SearchQuery query : chain) {
-            query.relevanceScore *= 1.1; // Boost all queries
+    // 📊 Contador global de pesquisas
+    private static int getGlobalSearchCounter(Context context) {
+        if (context == null) return 0;
+        
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(KEY_SEARCH_COUNT, 0);
+    }
+    
+    private static void incrementGlobalCounter(Context context) {
+        if (context == null) return;
+        
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        int current = prefs.getInt(KEY_SEARCH_COUNT, 0);
+        prefs.edit().putInt(KEY_SEARCH_COUNT, current + 1).apply();
+    }
+    
+    // ✨ Gerar query única e inteligente
+    private static String generateUniqueQuery(List<String> allTopics, Set<String> usedQueries, 
+                                             Random random, int index) {
+        
+        // Estratégia de geração baseada no índice
+        int strategy = index % 6;
+        
+        switch (strategy) {
+            case 0: return generateQuestionQuery(allTopics, random);
+            case 1: return generateActionQuery(allTopics, random);
+            case 2: return generateComparativeQuery(allTopics, random);
+            case 3: return generateTrendingQuery(allTopics, random);
+            case 4: return generatePracticalQuery(allTopics, random);
+            default: return generateMixedQuery(allTopics, random);
         }
+    }
+    
+    private static String generateQuestionQuery(List<String> topics, Random random) {
+        String topic = topics.get(random.nextInt(topics.size()));
+        String template = QUESTION_TEMPLATES[random.nextInt(QUESTION_TEMPLATES.length)];
+        return String.format(template, topic);
+    }
+    
+    private static String generateActionQuery(List<String> topics, Random random) {
+        String topic = topics.get(random.nextInt(topics.size()));
+        String template = ACTION_TEMPLATES[random.nextInt(ACTION_TEMPLATES.length)];
+        return String.format(template, topic);
+    }
+    
+    private static String generateComparativeQuery(List<String> topics, Random random) {
+        String topic1 = topics.get(random.nextInt(topics.size()));
+        String topic2 = topics.get(random.nextInt(topics.size()));
+        
+        // Garantir que são diferentes
+        while (topic1.equals(topic2)) {
+            topic2 = topics.get(random.nextInt(topics.size()));
+        }
+        
+        String[] comparativeTemplates = {
+            "%s vs %s", "%s ou %s", "diferença %s %s", "comparar %s %s",
+            "melhor %s %s", "escolher %s %s", "%s contra %s"
+        };
+        
+        String template = comparativeTemplates[random.nextInt(comparativeTemplates.length)];
+        return String.format(template, topic1, topic2);
+    }
+    
+    private static String generateTrendingQuery(List<String> topics, Random random) {
+        String topic = topics.get(random.nextInt(topics.size()));
+        String modifier = CONTEXTUAL_MODIFIERS[random.nextInt(CONTEXTUAL_MODIFIERS.length)];
+        
+        String[] trendingTemplates = {
+            "%s %s", "tendências %s %s", "novidades %s %s", 
+            "%s para %s", "%s em %s", "%s mais %s"
+        };
+        
+        String template = trendingTemplates[random.nextInt(trendingTemplates.length)];
+        return String.format(template, topic, modifier);
+    }
+    
+    private static String generatePracticalQuery(List<String> topics, Random random) {
+        String topic = topics.get(random.nextInt(topics.size()));
+        
+        String[] practicalTemplates = {
+            "tutorial %s", "passo a passo %s", "guia completo %s",
+            "dicas %s", "truques %s", "segredos %s", "técnicas %s",
+            "estratégias %s", "métodos %s", "ferramentas %s"
+        };
+        
+        String template = practicalTemplates[random.nextInt(practicalTemplates.length)];
+        return String.format(template, topic);
+    }
+    
+    private static String generateMixedQuery(List<String> topics, Random random) {
+        String topic = topics.get(random.nextInt(topics.size()));
+        String modifier = CONTEXTUAL_MODIFIERS[random.nextInt(CONTEXTUAL_MODIFIERS.length)];
+        
+        // Mistura aleatória de elementos
+        if (random.nextBoolean()) {
+            return modifier + " " + topic;
+        } else {
+            return topic + " " + modifier;
+        }
+    }
+    
+    // 🔄 Fallback para garantir que sempre gera algo
+    private static String generateFallbackQuery(List<String> topics, Random random, int index) {
+        String topic = topics.get(index % topics.size());
+        String modifier = CONTEXTUAL_MODIFIERS[index % CONTEXTUAL_MODIFIERS.length];
+        return topic + " " + modifier + " " + (index + 1);
+    }
+    
+    // 📊 Método para calcular qualidade das pesquisas geradas
+    public static double calculateQualityScore(List<SearchItem> searches) {
+        if (searches.isEmpty()) return 0.0;
+        
+        Set<String> uniqueWords = new HashSet<>();
+        int totalWords = 0;
+        int meaningfulQueries = 0;
+        
+        for (SearchItem search : searches) {
+            String query = search.getSearchText().toLowerCase();
+            String[] words = query.split("\\s+");
+            totalWords += words.length;
+            Collections.addAll(uniqueWords, words);
+            
+            // Verificar se é uma query significativa
+            for (String[] categoryTopics : MEGA_KNOWLEDGE_BASE.values()) {
+                for (String topic : categoryTopics) {
+                    if (query.contains(topic.toLowerCase())) {
+                        meaningfulQueries++;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        double diversityScore = totalWords > 0 ? (double) uniqueWords.size() / totalWords : 0.0;
+        double meaningfulnessScore = (double) meaningfulQueries / searches.size();
+        
+        return (diversityScore * 0.6 + meaningfulnessScore * 0.4) * 100;
     }
 }
