@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Legacy Material Design colors (kept for compatibility) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -8,7 +9,7 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Microsoft Rewards Theme -->
+    <!-- Microsoft Rewards Theme - Light mode -->
     <color name="microsoft_blue">#0078D4</color>
     <color name="microsoft_blue_dark">#106EBE</color>
     <color name="microsoft_green">#107C10</color>
@@ -16,24 +17,45 @@
     <color name="microsoft_red">#D13438</color>
     <color name="microsoft_yellow">#FFB900</color>
     
-    <!-- Material You (Material Design 3) colors -->
+    <!-- Material You (Material Design 3) colors - Light theme -->
     <color name="colorOutline">#79747E</color>
+    <color name="colorOutlineVariant">#CAC4D0</color>
     <color name="colorOnSurfaceVariant">#49454F</color>
+    <color name="colorSurfaceVariant">#E7E0EC</color>
     <color name="colorPrimaryContainer">#D1E5FF</color>
     <color name="colorOnPrimaryContainer">#001D36</color>
     <color name="colorSecondaryContainer">#C8E6C9</color>
     <color name="colorOnSecondaryContainer">#002203</color>
+    <color name="colorTertiaryContainer">#FFD8E4</color>
+    <color name="colorOnTertiaryContainer">#31111D</color>
     
-    <!-- Background colors -->
-    <color name="background_light">#FFFFFF</color>
-    <color name="surface_light">#F5F5F5</color>
-    <color name="primary_variant">#3700B3</color>
-    <color name="secondary">#03DAC6</color>
-    <color name="secondary_variant">#018786</color>
+    <!-- Semantic colors -->
+    <color name="colorError">#BA1A1A</color>
+    <color name="colorOnError">#FFFFFF</color>
+    <color name="colorErrorContainer">#FFDAD6</color>
+    <color name="colorOnErrorContainer">#410002</color>
+    
+    <!-- Background colors - Light theme -->
+    <color name="background_light">#FFFBFE</color>
+    <color name="surface_light">#FFFBFE</color>
+    <color name="surface_dim">#DDD8DD</color>
+    <color name="surface_bright">#FFFBFE</color>
+    <color name="surface_container_lowest">#FFFFFF</color>
+    <color name="surface_container_low">#F7F2F7</color>
+    <color name="surface_container">#F1ECF1</color>
+    <color name="surface_container_high">#ECE6EC</color>
+    <color name="surface_container_highest">#E6E1E6</color>
+    
+    <!-- Text colors -->
     <color name="on_primary">#FFFFFF</color>
     <color name="on_secondary">#000000</color>
-    <color name="on_background">#000000</color>
-    <color name="on_surface">#000000</color>
-    <color name="error">#B00020</color>
+    <color name="on_background">#1C1B1F</color>
+    <color name="on_surface">#1C1B1F</color>
+    
+    <!-- Legacy support -->
+    <color name="primary_variant">#106EBE</color>
+    <color name="secondary">#107C10</color>
+    <color name="secondary_variant">#0D5F0D</color>
+    <color name="error">#BA1A1A</color>
     <color name="on_error">#FFFFFF</color>
 </resources>

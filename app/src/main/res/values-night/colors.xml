@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme colors -->
+    
+    <!-- Microsoft Rewards Theme - Dark variants -->
+    <color name="microsoft_blue">#4FC3F7</color>
+    <color name="microsoft_blue_dark">#0288D1</color>
+    <color name="microsoft_green">#4CAF50</color>
+    <color name="microsoft_orange">#FFB74D</color>
+    <color name="microsoft_red">#F44336</color>
+    <color name="microsoft_yellow">#FFC107</color>
+    
+    <!-- Material You (Material Design 3) colors for dark theme -->
+    <color name="colorOutline">#938F99</color>
+    <color name="colorOnSurfaceVariant">#CAC4D0</color>
+    <color name="colorPrimaryContainer">#004A77</color>
+    <color name="colorOnPrimaryContainer">#D1E5FF</color>
+    <color name="colorSecondaryContainer">#2E7D32</color>
+    <color name="colorOnSecondaryContainer">#C8E6C9</color>
+    
+    <!-- Background colors for dark theme -->
+    <color name="background_light">#121212</color>
+    <color name="surface_light">#1E1E1E</color>
+    <color name="on_background">#FFFFFF</color>
+    <color name="on_surface">#FFFFFF</color>
+</resources>
