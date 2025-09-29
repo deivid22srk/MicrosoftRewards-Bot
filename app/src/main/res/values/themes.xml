@@ -1,30 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Base.Theme.MicrosoftRewardsBot" parent="Theme.Material3.DayNight">
-        <item name="colorPrimary">@android:color/system_accent1_500</item>
-        <item name="colorOnPrimary">@android:color/system_neutral1_50</item>
-        <item name="colorPrimaryContainer">@android:color/system_accent1_100</item>
-        <item name="colorOnPrimaryContainer">@android:color/system_accent1_900</item>
-        <item name="colorSecondary">@android:color/system_accent2_500</item>
-        <item name="colorOnSecondary">@android:color/system_neutral1_50</item>
-        <item name="colorSecondaryContainer">@android:color/system_accent2_100</item>
-        <item name="colorOnSecondaryContainer">@android:color/system_accent2_900</item>
-        <item name="colorTertiary">@android:color/system_accent3_500</item>
-        <item name="colorOnTertiary">@android:color/system_neutral1_50</item>
-        <item name="colorTertiaryContainer">@android:color/system_accent3_100</item>
-        <item name="colorOnTertiaryContainer">@android:color/system_accent3_900</item>
-        <item name="colorError">@android:color/system_error_600</item>
-        <item name="colorOnError">@android:color/system_neutral1_50</item>
-        <item name="colorErrorContainer">@android:color/system_error_100</item>
-        <item name="colorOnErrorContainer">@android:color/system_error_900</item>
-        <item name="android:colorBackground">@android:color/system_neutral1_50</item>
-        <item name="colorOnBackground">@android:color/system_neutral1_900</item>
-        <item name="colorSurface">@android:color/system_neutral1_50</item>
-        <item name="colorOnSurface">@android:color/system_neutral1_900</item>
-        <item name="colorSurfaceVariant">@android:color/system_neutral2_100</item>
-        <item name="colorOnSurfaceVariant">@android:color/system_neutral2_700</item>
-        <item name="colorOutline">@android:color/system_neutral_variant_500</item>
-        <item name="colorOutlineVariant">@android:color/system_neutral2_200</item>
+        <!-- Primary Colors -->
+        <item name="colorPrimary">#6750A4</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#EADDFF</item>
+        <item name="colorOnPrimaryContainer">#21005D</item>
+        
+        <!-- Secondary Colors -->
+        <item name="colorSecondary">#625B71</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#E8DEF8</item>
+        <item name="colorOnSecondaryContainer">#1D192B</item>
+        
+        <!-- Tertiary Colors -->
+        <item name="colorTertiary">#7D5260</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#FFD8E4</item>
+        <item name="colorOnTertiaryContainer">#31111D</item>
+        
+        <!-- Error Colors -->
+        <item name="colorError">#BA1A1A</item>
+        <item name="colorOnError">#FFFFFF</item>
+        <item name="colorErrorContainer">#FFDAD6</item>
+        <item name="colorOnErrorContainer">#410002</item>
+        
+        <!-- Background Colors -->
+        <item name="android:colorBackground">#FFFBFE</item>
+        <item name="colorOnBackground">#1C1B1F</item>
+        <item name="colorSurface">#FFFBFE</item>
+        <item name="colorOnSurface">#1C1B1F</item>
+        <item name="colorSurfaceVariant">#E7E0EC</item>
+        <item name="colorOnSurfaceVariant">#49454F</item>
+        
+        <!-- Outline Colors -->
+        <item name="colorOutline">#79747E</item>
+        <item name="colorOutlineVariant">#CAC4D0</item>
     </style>
 
     <style name="Theme.MicrosoftRewardsBot" parent="Base.Theme.MicrosoftRewardsBot" />
