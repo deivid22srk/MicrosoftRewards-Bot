@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Microsoft Rewards Bot</string>
+    <string name="search_count_label">Número de pesquisas:</string>
+    <string name="generate_searches_btn">Gerar Pesquisas</string>
+    <string name="start_automation_btn">Iniciar Automação</string>
+    <string name="stop_automation_btn">Parar Automação</string>
+    <string name="search_progress">Progresso: %1$d/%2$d</string>
+    <string name="overlay_permission_required">Permissão de overlay necessária</string>
+    <string name="overlay_permission_message">Para mostrar o botão flutuante, você precisa permitir que o app apareça sobre outros apps.</string>
+    <string name="grant_permission">Conceder Permissão</string>
+    <string name="cancel">Cancelar</string>
+    <string name="searches_generated">%d pesquisas geradas com sucesso!</string>
+    <string name="automation_started">Automação iniciada</string>
+    <string name="automation_stopped">Automação parada</string>
+    <string name="next_search_in">Próxima pesquisa em: %d segundos</string>
+    <string name="current_search">Pesquisa atual: %s</string>
+    <string name="opening_chrome">Abrindo Chrome...</string>
+    <string name="search_completed">Pesquisa completada!</string>
+    <string name="all_searches_completed">Todas as pesquisas completadas!</string>
+    <string name="floating_button_notification_title">Microsoft Rewards Bot</string>
+    <string name="floating_button_notification_text">Botão flutuante ativo</string>
+</resources>

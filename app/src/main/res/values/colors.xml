@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Microsoft Rewards Theme -->
+    <color name="microsoft_blue">#0078D4</color>
+    <color name="microsoft_blue_dark">#106EBE</color>
+    <color name="microsoft_green">#107C10</color>
+    <color name="microsoft_orange">#FF8C00</color>
+    <color name="microsoft_red">#D13438</color>
+    <color name="microsoft_yellow">#FFB900</color>
+    
+    <!-- Background colors -->
+    <color name="background_light">#FFFFFF</color>
+    <color name="surface_light">#F5F5F5</color>
+    <color name="primary_variant">#3700B3</color>
+    <color name="secondary">#03DAC6</color>
+    <color name="secondary_variant">#018786</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="on_secondary">#000000</color>
+    <color name="on_background">#000000</color>
+    <color name="on_surface">#000000</color>
+    <color name="error">#B00020</color>
+    <color name="on_error">#FFFFFF</color>
+</resources>
