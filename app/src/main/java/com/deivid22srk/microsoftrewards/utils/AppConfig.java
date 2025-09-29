@@ -338,7 +338,7 @@ public class AppConfig {
     
     public boolean hasValidGeminiApiKey() {
         String apiKey = getGeminiApiKey();
-        return apiKey != null && !apiKey.trim().isEmpty() && apiKey.startsWith("AIza");
+        return GeminiSearchGenerator.isValidGeminiApiKey(apiKey);
     }
     
     // 🔧 Métodos utilitários

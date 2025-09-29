@@ -28,7 +28,7 @@ import okhttp3.Response;
 public class GeminiSearchGenerator {
     
     private static final String TAG = "GeminiSearchGenerator";
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     
     // Cliente HTTP configurado para requisições à API
@@ -104,23 +104,34 @@ public class GeminiSearchGenerator {
         
         // Criar prompt inteligente para o Gemini
         String prompt = createSmartPrompt(count);
+        Log.d(TAG, "Prompt criado para Gemini: " + prompt.substring(0, Math.min(100, prompt.length())) + "...");
         
         // Construir request JSON
         JSONObject requestBody = buildGeminiRequest(prompt);
+        Log.d(TAG, "Request JSON criado: " + requestBody.toString().substring(0, Math.min(200, requestBody.toString().length())) + "...");
         
         // Fazer requisição HTTP
+        String fullUrl = GEMINI_API_URL + "?key=" + apiKey;
+        Log.d(TAG, "Fazendo requisição para: " + GEMINI_API_URL + "?key=" + apiKey.substring(0, Math.min(10, apiKey.length())) + "...");
+        
         Request request = new Request.Builder()
-                .url(GEMINI_API_URL + "?key=" + apiKey)
+                .url(fullUrl)
                 .post(RequestBody.create(requestBody.toString(), JSON))
                 .addHeader("Content-Type", "application/json")
+                .addHeader("User-Agent", "Microsoft-Rewards-Bot/2.0")
                 .build();
         
         try (Response response = client.newCall(request).execute()) {
+            Log.d(TAG, "Resposta recebida: " + response.code() + " " + response.message());
+            
             if (!response.isSuccessful()) {
-                throw new IOException("Resposta da API não foi bem-sucedida: " + response.code() + " " + response.message());
+                String errorBody = response.body() != null ? response.body().string() : "Sem corpo na resposta";
+                Log.e(TAG, "Erro na API: " + response.code() + " - " + errorBody);
+                throw new IOException("Erro na API Gemini: " + response.code() + " " + response.message() + "\nDetalhes: " + errorBody);
             }
             
             String responseBody = response.body().string();
+            Log.d(TAG, "Corpo da resposta: " + responseBody.substring(0, Math.min(300, responseBody.length())) + "...");
             return parseGeminiResponse(responseBody);
         }
     }
@@ -130,37 +141,37 @@ public class GeminiSearchGenerator {
      */
     private static String createSmartPrompt(int count) {
         return String.format(
-            "Você é um assistente especializado em gerar termos de pesquisa para Microsoft Rewards. " +
-            "Gere exatamente %d termos de pesquisa únicos e variados em português brasileiro.\n\n" +
+            "Generate exactly %d unique search terms in Brazilian Portuguese for Microsoft Rewards. " +
+            "Each term should be 2-5 words and cover diverse topics.\n\n" +
             
-            "CARACTERÍSTICAS IMPORTANTES:\n" +
-            "• Cada termo deve ser diferente e único\n" +
-            "• Use tópicos atuais e populares de 2024-2025\n" +
-            "• Inclua diversidade: tecnologia, entretenimento, saúde, educação, cultura, esportes\n" +
-            "• Termos de 2-5 palavras cada\n" +
-            "• Evite repetições ou termos muito similares\n" +
-            "• Use linguagem natural que pessoas realmente pesquisariam\n\n" +
+            "REQUIREMENTS:\n" +
+            "• All terms must be different and unique\n" +
+            "• Use current topics from 2024-2025\n" +
+            "• Include variety: technology, entertainment, health, education, culture, sports\n" +
+            "• Natural language that people actually search for\n" +
+            "• No repetition or very similar terms\n\n" +
             
-            "CATEGORIAS PARA INCLUIR:\n" +
-            "• Inteligência Artificial e tecnologia\n" +
-            "• Filmes, séries e entretenimento\n" +
-            "• Jogos e esports\n" +
-            "• Saúde e bem-estar\n" +
-            "• Educação e carreira\n" +
-            "• Finanças e investimentos\n" +
-            "• Culinária e receitas\n" +
-            "• Viagens e turismo\n" +
-            "• Esportes e times\n" +
-            "• Notícias e eventos atuais\n\n" +
+            "TOPICS TO INCLUDE:\n" +
+            "• Artificial Intelligence and technology\n" +
+            "• Movies, series, and entertainment\n" +
+            "• Games and esports\n" +
+            "• Health and wellness\n" +
+            "• Education and career\n" +
+            "• Finance and investments\n" +
+            "• Cooking and recipes\n" +
+            "• Travel and tourism\n" +
+            "• Sports and teams\n" +
+            "• Current news and events\n\n" +
             
-            "FORMATO DE RESPOSTA:\n" +
-            "Responda APENAS com os termos de pesquisa, um por linha, sem numeração, sem explicações adicionais.\n" +
-            "Exemplo:\n" +
+            "OUTPUT FORMAT:\n" +
+            "Return ONLY the search terms, one per line, no numbering, no additional explanations.\n\n" +
+            
+            "Example:\n" +
             "inteligência artificial 2024\n" +
             "receitas saudáveis\n" +
             "melhores filmes netflix\n\n" +
             
-            "AGORA GERE %d TERMOS ÚNICOS:",
+            "Generate %d unique terms now:",
             count, count
         );
     }
@@ -276,10 +287,19 @@ public class GeminiSearchGenerator {
      * Valida se uma API Key do Gemini parece válida
      */
     public static boolean isValidGeminiApiKey(String apiKey) {
-        return apiKey != null && 
-               !apiKey.trim().isEmpty() && 
-               apiKey.startsWith("AIza") && 
-               apiKey.length() > 20;
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            return false;
+        }
+        
+        String trimmedKey = apiKey.trim();
+        
+        // Aceitar diferentes formatos de API Key do Google
+        return (trimmedKey.startsWith("AIza") || 
+                trimmedKey.startsWith("AIzaSy") ||
+                trimmedKey.startsWith("AI") ||
+                trimmedKey.matches("^[A-Za-z0-9_-]+$")) && 
+               trimmedKey.length() >= 20 && 
+               trimmedKey.length() <= 100;
     }
     
     /**
