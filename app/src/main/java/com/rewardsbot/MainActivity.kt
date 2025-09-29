@@ -7,35 +7,20 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.rewardsbot.service.FloatingButtonService
-import com.rewardsbot.service.SearchService
 import com.rewardsbot.ui.theme.MicrosoftRewardsBotTheme
-import com.rewardsbot.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
-    
-    private val overlayPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        // Permission result handled in ViewModel
-    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,16 +39,10 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: MainViewModel = viewModel()) {
+fun MainScreen() {
     val context = LocalContext.current
-    val searchCount by viewModel.searchCount.collectAsState()
-    val isRunning by viewModel.isRunning.collectAsState()
-    val hasOverlayPermission by viewModel.hasOverlayPermission.collectAsState()
-    val hasAccessibilityPermission by viewModel.hasAccessibilityPermission.collectAsState()
-    
-    LaunchedEffect(Unit) {
-        viewModel.checkPermissions(context)
-    }
+    var searchCount by remember { mutableStateOf(30) }
+    var isRunning by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -113,111 +92,42 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
-                OutlinedTextField(
-                    value = searchCount.toString(),
-                    onValueChange = { value ->
-                        value.toIntOrNull()?.let { count ->
-                            if (count > 0 && count <= 100) {
-                                viewModel.updateSearchCount(count)
-                            }
-                        }
-                    },
-                    label = { Text("Número de pesquisas") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Entre 1 e 100 pesquisas") }
+                Text(
+                    text = "Número de pesquisas: $searchCount",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            }
-        }
-        
-        // Permissions Status
-        if (!hasOverlayPermission || !hasAccessibilityPermission) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
+                
+                Slider(
+                    value = searchCount.toFloat(),
+                    onValueChange = { searchCount = it.toInt() },
+                    valueRange = 1f..100f,
+                    steps = 98,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Permissões Necessárias",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    if (!hasOverlayPermission) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Sobreposição de tela",
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Button(
-                                onClick = {
-                                    requestOverlayPermission(context)
-                                }
-                            ) {
-                                Text("Habilitar")
-                            }
-                        }
-                    }
-                    
-                    if (!hasAccessibilityPermission) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Serviço de acessibilidade",
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Button(
-                                onClick = {
-                                    requestAccessibilityPermission(context)
-                                }
-                            ) {
-                                Text("Habilitar")
-                            }
-                        }
-                    }
-                }
             }
         }
         
         // Start/Stop Button
-        FilledTonalButton(
+        Button(
             onClick = {
                 if (isRunning) {
-                    stopSearchService(context)
-                    viewModel.setRunning(false)
+                    isRunning = false
                 } else {
-                    if (hasOverlayPermission && hasAccessibilityPermission) {
-                        startSearchService(context, searchCount)
-                        viewModel.setRunning(true)
+                    if (checkPermissions(context)) {
+                        startSearches(context, searchCount)
+                        isRunning = true
+                    } else {
+                        requestPermissions(context)
                     }
                 }
             },
-            enabled = hasOverlayPermission && hasAccessibilityPermission,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
             Icon(
-                imageVector = if (isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
+                imageVector = Icons.Default.PlayArrow,
                 contentDescription = null,
                 modifier = Modifier.padding(end = 8.dp)
             )
@@ -248,7 +158,7 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                 )
                 Text(
                     text = if (isRunning) 
-                        "O bot está executando pesquisas automaticamente" 
+                        "O bot está executando $searchCount pesquisas automaticamente" 
                     else 
                         "Pressione 'Iniciar Pesquisas' para começar",
                     style = MaterialTheme.typography.bodyMedium,
@@ -260,7 +170,11 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
     }
 }
 
-private fun requestOverlayPermission(context: Context) {
+private fun checkPermissions(context: Context): Boolean {
+    return Settings.canDrawOverlays(context)
+}
+
+private fun requestPermissions(context: Context) {
     val intent = Intent(
         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
         Uri.parse("package:${context.packageName}")
@@ -268,24 +182,16 @@ private fun requestOverlayPermission(context: Context) {
     context.startActivity(intent)
 }
 
-private fun requestAccessibilityPermission(context: Context) {
-    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-    context.startActivity(intent)
-}
-
-private fun startSearchService(context: Context, searchCount: Int) {
-    val serviceIntent = Intent(context, SearchService::class.java)
-    serviceIntent.putExtra("search_count", searchCount)
-    context.startService(serviceIntent)
+private fun startSearches(context: Context, searchCount: Int) {
+    // Simplified - just open browser for now
+    val searchUrl = "https://www.bing.com/search?q=Microsoft+Rewards+Bot+test"
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
     
-    val floatingIntent = Intent(context, FloatingButtonService::class.java)
-    context.startService(floatingIntent)
-}
-
-private fun stopSearchService(context: Context) {
-    val serviceIntent = Intent(context, SearchService::class.java)
-    context.stopService(serviceIntent)
-    
-    val floatingIntent = Intent(context, FloatingButtonService::class.java)
-    context.stopService(floatingIntent)
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        // Handle error silently
+    }
 }
