@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Microsoft Rewards Bot</string>
+    <string name="search_count">Número de pesquisas</string>
+    <string name="start_searches">Iniciar Pesquisas</string>
+    <string name="stop_searches">Parar Pesquisas</string>
+    <string name="generating_searches">Gerando pesquisas...</string>
+    <string name="searches_completed">Pesquisas: %1$d/%2$d</string>
+    <string name="permission_overlay">Permissão de sobreposição necessária</string>
+    <string name="permission_accessibility">Serviço de acessibilidade necessário</string>
+    <string name="enable_overlay">Habilitar Sobreposição</string>
+    <string name="enable_accessibility">Habilitar Acessibilidade</string>
+    <string name="search_in_progress">Pesquisa em andamento...</string>
+    <string name="next_search_in">Próxima pesquisa em: %1$ds</string>
+    <string name="all_searches_completed">Todas as pesquisas concluídas!</string>
+</resources>
