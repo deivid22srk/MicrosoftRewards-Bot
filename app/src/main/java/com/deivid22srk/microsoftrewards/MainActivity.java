@@ -88,9 +88,9 @@ public class MainActivity extends AppCompatActivity {
         
         binding.searchCountInputLayout.setError(null);
         
-        // Gerar pesquisas com IA
+        // Gerar pesquisas com IA avançada
         searchItems.clear();
-        List<SearchItem> generatedSearches = SmartSearchGenerator.generateSmartSearches(count);
+        List<SearchItem> generatedSearches = SmartSearchGenerator.generateAdvancedIntelligentSearches(count, this);
         
         searchItems.addAll(generatedSearches);
         
