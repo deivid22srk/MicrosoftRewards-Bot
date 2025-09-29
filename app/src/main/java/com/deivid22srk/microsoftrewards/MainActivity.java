@@ -194,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             })
             .setNegativeButton(R.string.cancel, null)
+            .setCancelable(false)
             .show();
     }
 
@@ -216,9 +217,20 @@ public class MainActivity extends AppCompatActivity {
         
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startAutomation();
+                // Permissão de notificação concedida, verificar overlay
+                if (hasOverlayPermission()) {
+                    startAutomationServices();
+                } else {
+                    requestOverlayPermission();
+                }
             } else {
-                Toast.makeText(this, "Permissão de notificação necessária", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Permissão de notificação é necessária para funcionamento completo", Toast.LENGTH_LONG).show();
+                // Mesmo sem notificação, permitir continuar se tiver overlay
+                if (hasOverlayPermission()) {
+                    startAutomationServices();
+                } else {
+                    requestOverlayPermission();
+                }
             }
         }
     }

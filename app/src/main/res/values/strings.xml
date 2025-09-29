@@ -6,7 +6,7 @@
     <string name="stop_automation_btn">Parar Automação</string>
     <string name="search_progress">Progresso: %1$d/%2$d</string>
     <string name="overlay_permission_required">Permissão de overlay necessária</string>
-    <string name="overlay_permission_message">Para mostrar o botão flutuante, você precisa permitir que o app apareça sobre outros apps.</string>
+    <string name="overlay_permission_message">Para mostrar o botão flutuante sobre outros apps, você precisa:\n\n1. Tocar em "Conceder Permissão"\n2. Encontrar "Microsoft Rewards Bot" na lista\n3. Ativar "Permitir exibição sobre outros apps"\n4. Voltar ao app</string>
     <string name="grant_permission">Conceder Permissão</string>
     <string name="cancel">Cancelar</string>
     <string name="searches_generated">%d pesquisas geradas com sucesso!</string>
