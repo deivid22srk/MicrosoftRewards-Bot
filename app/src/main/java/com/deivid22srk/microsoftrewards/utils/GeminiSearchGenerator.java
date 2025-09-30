@@ -138,14 +138,19 @@ public class GeminiSearchGenerator {
      * Gera um lote único de pesquisas (método principal)
      */
     private static List<SearchItem> generateSingleBatch(int count, String apiKey, GeminiModel model) throws IOException, JSONException {
-        // Limitar para evitar MAX_TOKENS
-        if (count > 15) {
-            count = 15;
-            Log.w(TAG, "Limitando para 15 pesquisas para evitar MAX_TOKENS");
+        // Otimizar geração baseada no número solicitado
+        int batchSize = Math.min(count, 25); // Aumentar limite para 25 por lote
+        
+        if (count > 25) {
+            // Para números grandes, usar geração em múltiplos lotes
+            Log.d(TAG, "Gerando " + count + " pesquisas em múltiplos lotes (máximo 25 por lote)");
+            return generateMultipleBatches(count, apiKey, model);
         }
         
+        Log.d(TAG, "Gerando " + batchSize + " pesquisas em lote único");
+        
         // Criar prompt otimizado
-        String prompt = createOptimizedPrompt(count);
+        String prompt = createOptimizedPrompt(batchSize);
         Log.d(TAG, "Usando modelo: " + model.getDisplayName() + " (" + model.getModelId() + ")");
         Log.d(TAG, "Prompt criado: " + prompt);
         
@@ -175,6 +180,148 @@ public class GeminiSearchGenerator {
             String responseBody = response.body().string();
             return parseOptimizedGeminiResponse(responseBody);
         }
+    }
+    
+    /**
+     * Gera múltiplos lotes para números grandes de pesquisas
+     */
+    private static List<SearchItem> generateMultipleBatches(int totalCount, String apiKey, GeminiModel model) throws IOException, JSONException {
+        List<SearchItem> allSearchItems = new ArrayList<>();
+        int batchSize = 25;
+        int remainingCount = totalCount;
+        int currentIndex = 1;
+        
+        Log.d(TAG, "Iniciando geração em lotes: " + totalCount + " pesquisas totais, " + batchSize + " por lote");
+        
+        while (remainingCount > 0 && allSearchItems.size() < totalCount) {
+            int currentBatchSize = Math.min(remainingCount, batchSize);
+            
+            Log.d(TAG, "Gerando lote: " + allSearchItems.size() + "/" + totalCount + " (" + currentBatchSize + " neste lote)");
+            
+            try {
+                // Criar prompt específico para este lote
+                String prompt = createOptimizedPromptForBatch(currentBatchSize, allSearchItems.size(), totalCount);
+                JSONObject requestBody = buildOptimizedGeminiRequest(prompt);
+                
+                // Fazer requisição
+                String fullUrl = model.getApiUrl() + "?key=" + apiKey;
+                Request request = new Request.Builder()
+                        .url(fullUrl)
+                        .post(RequestBody.create(requestBody.toString(), JSON))
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader("User-Agent", "Microsoft-Rewards-Bot/2.0")
+                        .build();
+                
+                try (Response response = client.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        String errorBody = response.body() != null ? response.body().string() : "Sem corpo na resposta";
+                        Log.e(TAG, "Erro na API (lote): " + response.code() + " - " + errorBody);
+                        throw new IOException("Erro na API Gemini: " + response.code() + " - " + errorBody);
+                    }
+                    
+                    String responseBody = response.body().string();
+                    List<SearchItem> batchResults = parseOptimizedGeminiResponse(responseBody);
+                    
+                    // Reindexar os itens para continuar a sequência
+                    for (SearchItem item : batchResults) {
+                        item = new SearchItem(item.getSearchText(), currentIndex++);
+                        allSearchItems.add(item);
+                    }
+                    
+                    Log.d(TAG, "Lote concluído: " + batchResults.size() + " itens adicionados. Total: " + allSearchItems.size());
+                    
+                    remainingCount -= batchResults.size();
+                    
+                    // Delay entre lotes para evitar rate limiting
+                    if (remainingCount > 0 && allSearchItems.size() < totalCount) {
+                        try {
+                            Thread.sleep(1000); // 1 segundo entre lotes
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    
+                } catch (IOException e) {
+                    Log.e(TAG, "Erro no lote " + (allSearchItems.size() / batchSize + 1) + ": " + e.getMessage());
+                    if (allSearchItems.size() < 5) {
+                        // Se temos muito poucos resultados, falhar
+                        throw e;
+                    } else {
+                        // Se já temos alguns resultados, continuar com o que temos
+                        Log.w(TAG, "Continuando com " + allSearchItems.size() + " pesquisas parciais");
+                        break;
+                    }
+                }
+                
+            } catch (JSONException e) {
+                Log.e(TAG, "Erro JSON no lote: " + e.getMessage());
+                break;
+            }
+        }
+        
+        Log.d(TAG, "Geração em lotes concluída: " + allSearchItems.size() + " pesquisas de " + totalCount + " solicitadas");
+        
+        // Se não conseguimos gerar pelo menos 70% do solicitado, usar fallback
+        if (allSearchItems.size() < (totalCount * 0.7)) {
+            Log.w(TAG, "Muitas falhas na geração em lotes, usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(totalCount);
+        }
+        
+        return allSearchItems;
+    }
+    
+    /**
+     * Cria um prompt otimizado específico para lotes
+     */
+    private static String createOptimizedPromptForBatch(int batchSize, int currentTotal, int finalTotal) {
+        // Gerar contexto aleatório para variar as respostas
+        String[] contexts = {
+            "para pesquisa acadêmica",
+            "sobre temas atuais",
+            "para estudo diversificado", 
+            "sobre tecnologia e inovação",
+            "sobre cultura e entretenimento",
+            "sobre ciência e descobertas",
+            "sobre história e sociedade",
+            "sobre economia e negócios",
+            "sobre saúde e bem-estar",
+            "sobre meio ambiente",
+            "sobre arte e literatura",
+            "sobre esportes e lazer"
+        };
+        
+        String[] styles = {
+            "termos de busca únicos",
+            "palavras-chave interessantes", 
+            "tópicos relevantes",
+            "assuntos diversos",
+            "temas variados",
+            "conceitos importantes"
+        };
+        
+        // Seleção aleatória considerando o lote atual
+        Random random = new Random(System.currentTimeMillis() + currentTotal);
+        String selectedContext = contexts[random.nextInt(contexts.length)];
+        String selectedStyle = styles[random.nextInt(styles.length)];
+        
+        String batchInfo = "";
+        if (finalTotal > batchSize) {
+            batchInfo = String.format(" (Lote %d de %d)", (currentTotal / batchSize) + 1, (finalTotal + batchSize - 1) / batchSize);
+        }
+        
+        return String.format(
+            "Gere %d %s diferentes em português %s%s. " +
+            "Seja muito criativo e original. Evite repetições. Cada linha deve conter apenas um termo único. " +
+            "IMPORTANTE: Responda APENAS com os termos, um por linha, sem numeração, símbolos ou explicações.\n\n" +
+            "Contexto: %s\n" +
+            "Batch ID: %d",
+            batchSize,
+            selectedStyle,
+            selectedContext,
+            batchInfo,
+            selectedContext,
+            System.currentTimeMillis() + currentTotal
+        );
     }
     
     /**
@@ -213,9 +360,9 @@ public class GeminiSearchGenerator {
         
         return String.format(
             "Gere %d %s diferentes em português %s. " +
-            "Seja criativo e varie bastante os temas. Cada linha deve ter um termo único. " +
-            "Evite repetições e seja original. " +
-            "IMPORTANTE: Responda APENAS com os termos, um por linha, sem numeração ou explicações.\n\n" +
+            "Seja muito criativo e varie os temas amplamente. Cada linha deve ter apenas um termo único. " +
+            "Evite repetições e seja completamente original. " +
+            "IMPORTANTE: Responda APENAS com os termos, um por linha, sem numeração, símbolos ou explicações.\n\n" +
             "Contexto atual: %s\n" +
             "Timestamp: %d",
             count,
@@ -246,8 +393,8 @@ public class GeminiSearchGenerator {
         
         // Configuração otimizada para geração de termos de pesquisa
         JSONObject generationConfig = new JSONObject();
-        generationConfig.put("temperature", 1.2); // Aumentar criatividade para mais diversidade
-        generationConfig.put("maxOutputTokens", 2048); // Limite adequado
+        generationConfig.put("temperature", 1.1); // Criatividade alta mas controlada
+        generationConfig.put("maxOutputTokens", 4096); // Limite aumentado para até 25 termos
         generationConfig.put("candidateCount", 1);
         generationConfig.put("topP", 0.9); // Permitir mais diversidade
         generationConfig.put("topK", 50); // Aumentar diversidade de tokens
