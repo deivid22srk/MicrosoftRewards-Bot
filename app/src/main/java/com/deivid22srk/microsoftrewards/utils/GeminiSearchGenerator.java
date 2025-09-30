@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
@@ -177,14 +178,51 @@ public class GeminiSearchGenerator {
     }
     
     /**
-     * Cria um prompt ultra-otimizado para evitar MAX_TOKENS
+     * Cria um prompt ultra-otimizado para evitar MAX_TOKENS com alta diversidade
      */
     private static String createOptimizedPrompt(int count) {
+        // Gerar contexto aleatório para variar as respostas
+        String[] contexts = {
+            "para estudo universitário",
+            "para pesquisa pessoal", 
+            "sobre atualidades",
+            "sobre tecnologia e inovação",
+            "sobre entretenimento",
+            "sobre ciência e descobertas",
+            "sobre cultura e arte",
+            "sobre esportes e saúde",
+            "sobre viagem e turismo",
+            "sobre culinária e gastronomia",
+            "sobre história e geografia",
+            "sobre economia e negócios"
+        };
+        
+        String[] styles = {
+            "perguntas curiosas",
+            "tópicos interessantes", 
+            "termos de pesquisa",
+            "assuntos relevantes",
+            "palavras-chave úteis",
+            "questões importantes"
+        };
+        
+        // Seleção aleatória para variar as gerações
+        Random random = new Random(System.currentTimeMillis());
+        String selectedContext = contexts[random.nextInt(contexts.length)];
+        String selectedStyle = styles[random.nextInt(styles.length)];
+        
         return String.format(
-            "Gere %d termos de pesquisa diferentes em português, cada um em uma linha separada. " +
-            "Inclua tópicos variados como: tecnologia, notícias, entretenimento, esportes, ciência, cultura, educação.\n\n" +
-            "Responda APENAS com os termos, um por linha, sem numeração, sem símbolos, sem explicações:",
-            count
+            "Gere %d %s diferentes em português %s. " +
+            "Seja criativo e varie bastante os temas. Cada linha deve ter um termo único. " +
+            "Evite repetições e seja original. " +
+            "IMPORTANTE: Responda APENAS com os termos, um por linha, sem numeração ou explicações.\n\n" +
+            "Contexto atual: %s\n" +
+            "Timestamp: %d",
+            count,
+            selectedStyle,
+            selectedContext,
+            selectedContext,
+            System.currentTimeMillis()
         );
     }
     
@@ -208,11 +246,11 @@ public class GeminiSearchGenerator {
         
         // Configuração otimizada para geração de termos de pesquisa
         JSONObject generationConfig = new JSONObject();
-        generationConfig.put("temperature", 0.9); // Maior criatividade para termos variados
+        generationConfig.put("temperature", 1.2); // Aumentar criatividade para mais diversidade
         generationConfig.put("maxOutputTokens", 2048); // Limite adequado
         generationConfig.put("candidateCount", 1);
-        generationConfig.put("topP", 0.8); // Foco em tokens mais relevantes
-        generationConfig.put("topK", 40); // Diversidade controlada
+        generationConfig.put("topP", 0.9); // Permitir mais diversidade
+        generationConfig.put("topK", 50); // Aumentar diversidade de tokens
         
         request.put("generationConfig", generationConfig);
         

@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
@@ -57,6 +58,9 @@ public class FloatingButtonService extends Service {
     private LinearLayout controlButtonsContainer;
     private ImageView pausePlayButton;
     private ImageView stopButton;
+    private RelativeLayout dragArea;
+    private ImageView dragHandle;
+    private TextView statusText;
     
     private int currentIndex = 0;
     private int totalCount = 0;
@@ -151,18 +155,24 @@ public class FloatingButtonService extends Service {
         LayoutInflater inflater = LayoutInflater.from(themedContext);
         floatingView = inflater.inflate(R.layout.floating_button_layout, null);
         
-        // Inicializar views
+        // Inicializar views com novo layout
         progressText = floatingView.findViewById(R.id.floatingProgressText);
         floatingIcon = floatingView.findViewById(R.id.floatingIcon);
         progressBar = floatingView.findViewById(R.id.floatingProgressBar);
         controlButtonsContainer = floatingView.findViewById(R.id.controlButtonsContainer);
         pausePlayButton = floatingView.findViewById(R.id.pausePlayButton);
         stopButton = floatingView.findViewById(R.id.stopButton);
+        dragArea = floatingView.findViewById(R.id.dragArea);
+        dragHandle = floatingView.findViewById(R.id.dragHandle);
+        statusText = floatingView.findViewById(R.id.statusText);
         
         // Configurar click listeners dos botões de controle
         setupControlButtons();
         
-        // Configurar parâmetros da janela
+        // Configurar sistema de drag melhorado
+        setupImprovedDragSystem(params);
+        
+        // Configurar parâmetros da janela otimizados
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -173,22 +183,9 @@ public class FloatingButtonService extends Service {
             PixelFormat.TRANSLUCENT
         );
         
-        params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 0;
-        params.y = 100;
-        
-        // Adicionar touch listener para arrastar
-        setupTouchListener(params);
-        
-        // Adicionar à janela
-        windowManager.addView(floatingView, params);
-        
-        // Click listener para abrir app principal (apenas no ícone principal)
-        floatingIcon.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        });
+        params.gravity = Gravity.TOP | Gravity.END; // Posição inicial melhor
+        params.x = 50;
+        params.y = 200;
         
         // Configurar progress bar inicial
         progressBar.setMax(100);
@@ -196,14 +193,22 @@ public class FloatingButtonService extends Service {
         
         // Estado inicial
         updateFloatingButton("IDLE");
+        
+        // Adicionar à janela
+        windowManager.addView(floatingView, params);
     }
-
-    private void setupTouchListener(WindowManager.LayoutParams params) {
-        floatingView.setOnTouchListener(new View.OnTouchListener() {
+    
+    /**
+     * Sistema de drag melhorado com áreas específicas
+     */
+    private void setupImprovedDragSystem(WindowManager.LayoutParams params) {
+        // Área de drag principal - apenas a dragArea pode ser usada para arrastar
+        dragArea.setOnTouchListener(new View.OnTouchListener() {
             private int initialX;
             private int initialY;
             private float initialTouchX;
             private float initialTouchY;
+            private boolean isDragging = false;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -213,29 +218,67 @@ public class FloatingButtonService extends Service {
                         initialY = params.y;
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
-                        return true;
+                        isDragging = false;
                         
-                    case MotionEvent.ACTION_UP:
-                        int xDiff = (int) (event.getRawX() - initialTouchX);
-                        int yDiff = (int) (event.getRawY() - initialTouchY);
-                        
-                        // Se foi um clique (pouco movimento), não processar como drag
-                        if (Math.abs(xDiff) < 10 && Math.abs(yDiff) < 10) {
-                            return false; // Permite que o OnClickListener seja chamado
-                        }
+                        // Feedback visual ao tocar
+                        dragHandle.setAlpha(1.0f);
+                        dragArea.setAlpha(0.9f);
                         return true;
                         
                     case MotionEvent.ACTION_MOVE:
-                        params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                        int deltaX = (int) (event.getRawX() - initialTouchX);
+                        int deltaY = (int) (event.getRawY() - initialTouchY);
                         
-                        windowManager.updateViewLayout(floatingView, params);
+                        // Detectar se é um movimento de drag (não apenas um tap)
+                        if (!isDragging && (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15)) {
+                            isDragging = true;
+                            // Feedback visual durante drag
+                            dragArea.setAlpha(0.7f);
+                        }
+                        
+                        if (isDragging) {
+                            params.x = initialX - deltaX; // Inverter X para Gravity.END
+                            params.y = initialY + deltaY;
+                            
+                            // Manter dentro dos limites da tela
+                            params.x = Math.max(0, Math.min(params.x, getScreenWidth() - floatingView.getWidth()));
+                            params.y = Math.max(0, Math.min(params.y, getScreenHeight() - floatingView.getHeight()));
+                            
+                            windowManager.updateViewLayout(floatingView, params);
+                        }
+                        return true;
+                        
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        // Restaurar feedback visual
+                        dragHandle.setAlpha(0.7f);
+                        dragArea.setAlpha(1.0f);
+                        
+                        if (!isDragging) {
+                            // Se não foi drag, tratar como click para abrir app principal
+                            Intent intent = new Intent(FloatingButtonService.this, MainActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        }
                         return true;
                 }
                 return false;
             }
         });
+        
+        // Remover o touch listener antigo do floatingView
+        // floatingView.setOnTouchListener(null);
     }
+    
+    private int getScreenWidth() {
+        return getResources().getDisplayMetrics().widthPixels;
+    }
+    
+    private int getScreenHeight() {
+        return getResources().getDisplayMetrics().heightPixels;
+    }
+
+
 
     private void setupControlButtons() {
         // Botão pause/play
@@ -291,6 +334,9 @@ public class FloatingButtonService extends Service {
                 progressBar.invalidate();
             }
             
+            // Atualizar texto de status
+            String statusText = "";
+            
             // Atualizar aparência baseada no status
             switch (status) {
                 case "STARTED":
@@ -298,6 +344,7 @@ public class FloatingButtonService extends Service {
                     progressBar.setVisibility(View.VISIBLE);
                     controlButtonsContainer.setVisibility(View.VISIBLE);
                     floatingIcon.setAlpha(0.9f);
+                    statusText = "🚀 Ativo";
                     isRunning = true;
                     break;
                     
@@ -305,6 +352,7 @@ public class FloatingButtonService extends Service {
                     progressBar.setVisibility(View.VISIBLE);
                     controlButtonsContainer.setVisibility(View.VISIBLE);
                     floatingIcon.setAlpha(0.6f);
+                    statusText = "⏸️ Pausado";
                     isPaused = true;
                     updatePausePlayButton();
                     break;
@@ -313,6 +361,7 @@ public class FloatingButtonService extends Service {
                     progressBar.setVisibility(View.VISIBLE);
                     controlButtonsContainer.setVisibility(View.VISIBLE);
                     floatingIcon.setAlpha(0.9f);
+                    statusText = "▶️ Executando";
                     isPaused = false;
                     updatePausePlayButton();
                     break;
@@ -321,15 +370,18 @@ public class FloatingButtonService extends Service {
                     progressBar.setVisibility(View.GONE);
                     controlButtonsContainer.setVisibility(View.GONE);
                     floatingIcon.setAlpha(1.0f);
+                    statusText = "✅ Concluído";
                     isRunning = false;
                     isPaused = false;
-                    // Pode adicionar animação de sucesso aqui
+                    // Animação de sucesso
+                    animateSuccess();
                     break;
                     
                 case "COUNTDOWN":
                     progressBar.setVisibility(View.VISIBLE);
                     controlButtonsContainer.setVisibility(View.VISIBLE);
                     floatingIcon.setAlpha(0.7f);
+                    statusText = "⏰ Aguardando";
                     break;
                     
                 case "IDLE":
@@ -337,16 +389,35 @@ public class FloatingButtonService extends Service {
                     progressBar.setVisibility(View.GONE);
                     controlButtonsContainer.setVisibility(View.GONE);
                     floatingIcon.setAlpha(1.0f);
+                    statusText = "😴 Inativo";
                     isRunning = false;
                     isPaused = false;
                     break;
             }
+            
+            // Atualizar texto de status
+            this.statusText.setText(statusText);
+            this.statusText.setVisibility(isRunning || isPaused ? View.VISIBLE : View.GONE);
             
             // Atualizar botão de pause/play se necessário
             if (isRunning) {
                 updatePausePlayButton();
             }
         });
+    }
+    
+    private void animateSuccess() {
+        // Animação simples de sucesso
+        floatingIcon.animate()
+                .scaleX(1.2f)
+                .scaleY(1.2f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    floatingIcon.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(200);
+                });
     }
 
     @Override
