@@ -58,7 +58,7 @@ public class FloatingButtonService extends Service {
     private LinearLayout controlButtonsContainer;
     private ImageView pausePlayButton;
     private ImageView stopButton;
-    private RelativeLayout dragArea;
+    private LinearLayout dragArea;
     private ImageView dragHandle;
     private TextView statusText;
     
@@ -327,8 +327,13 @@ public class FloatingButtonService extends Service {
                 progressBar.setProgress(progress);
                 
                 // Garantir que a progress bar tenha as cores corretas
-                int[] colors = { getResources().getColor(R.color.microsoft_green, null) };
-                progressBar.setIndicatorColor(colors);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    int[] colors = { getResources().getColor(R.color.microsoft_green, getTheme()) };
+                    progressBar.setIndicatorColor(colors);
+                } else {
+                    int[] colors = { getResources().getColor(R.color.microsoft_green) };
+                    progressBar.setIndicatorColor(colors);
+                }
                 
                 // Forçar redraw para garantir que as cores sejam aplicadas
                 progressBar.invalidate();
