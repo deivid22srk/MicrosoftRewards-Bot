@@ -181,12 +181,10 @@ public class GeminiSearchGenerator {
      */
     private static String createOptimizedPrompt(int count) {
         return String.format(
-            "Liste %d termos de pesquisa em português, um por linha:\n" +
-            "tecnologia\n" +
-            "filmes\n" +
-            "jogos\n\n" +
-            "Agora liste %d termos únicos:",
-            Math.min(3, count), count
+            "Gere %d termos de pesquisa diferentes em português, cada um em uma linha separada. " +
+            "Inclua tópicos variados como: tecnologia, notícias, entretenimento, esportes, ciência, cultura, educação.\n\n" +
+            "Responda APENAS com os termos, um por linha, sem numeração, sem símbolos, sem explicações:",
+            count
         );
     }
     
@@ -208,11 +206,13 @@ public class GeminiSearchGenerator {
         
         request.put("contents", contents);
         
-        // Configuração mínima e otimizada
+        // Configuração otimizada para geração de termos de pesquisa
         JSONObject generationConfig = new JSONObject();
-        generationConfig.put("temperature", 0.8);
-        generationConfig.put("maxOutputTokens", 4096); // Maior limite
+        generationConfig.put("temperature", 0.9); // Maior criatividade para termos variados
+        generationConfig.put("maxOutputTokens", 2048); // Limite adequado
         generationConfig.put("candidateCount", 1);
+        generationConfig.put("topP", 0.8); // Foco em tokens mais relevantes
+        generationConfig.put("topK", 40); // Diversidade controlada
         
         request.put("generationConfig", generationConfig);
         
@@ -231,81 +231,122 @@ public class GeminiSearchGenerator {
         
         if (response.has("error")) {
             JSONObject error = response.getJSONObject("error");
-            throw new RuntimeException("Erro da API Gemini: " + error.getString("message"));
+            String errorMsg = error.has("message") ? error.getString("message") : "Erro desconhecido";
+            Log.e(TAG, "Erro da API Gemini: " + errorMsg);
+            throw new RuntimeException("Erro da API Gemini: " + errorMsg);
         }
         
-        JSONArray candidates = response.getJSONArray("candidates");
-        if (candidates.length() > 0) {
-            JSONObject candidate = candidates.getJSONObject(0);
-            
-            // Log para debugging
-            Log.d(TAG, "Candidate: " + candidate.toString());
-            
-            if (candidate.has("finishReason")) {
-                String finishReason = candidate.getString("finishReason");
-                Log.d(TAG, "Finish reason: " + finishReason);
-                
-                if ("MAX_TOKENS".equals(finishReason)) {
-                    Log.w(TAG, "Resposta truncada - usando fallback");
-                    return SmartSearchGenerator.generateSmartSearches(10);
-                }
-            }
-            
-            if (candidate.has("content")) {
-                JSONObject content = candidate.getJSONObject("content");
-                Log.d(TAG, "Content: " + content.toString());
-                
-                if (content.has("parts")) {
-                    JSONArray parts = content.getJSONArray("parts");
-                    
-                    if (parts.length() > 0) {
-                        JSONObject part = parts.getJSONObject(0);
-                        
-                        if (part.has("text")) {
-                            String generatedText = part.getString("text");
-                            Log.d(TAG, "Texto gerado: " + generatedText);
-                            
-                            // Processar o texto
-                            String[] lines = generatedText.split("\n");
-                            int index = 1;
-                            
-                            for (String line : lines) {
-                                String cleanLine = line.trim();
-                                
-                                if (!cleanLine.isEmpty() && 
-                                    cleanLine.length() > 2 && 
-                                    cleanLine.length() < 50 &&
-                                    !cleanLine.contains(":") &&
-                                    !cleanLine.matches("\\d+\\..*") &&
-                                    !cleanLine.startsWith("-") &&
-                                    !cleanLine.startsWith("*")) {
-                                    
-                                    searchItems.add(new SearchItem(cleanLine, index++));
-                                    Log.d(TAG, "Adicionado: " + cleanLine);
-                                }
-                            }
-                        } else {
-                            Log.w(TAG, "Part não tem texto");
-                        }
-                    } else {
-                        Log.w(TAG, "Parts array vazio");
-                    }
-                } else {
-                    Log.w(TAG, "Content não tem parts - usando fallback");
-                    return SmartSearchGenerator.generateSmartSearches(10);
-                }
-            } else {
-                Log.w(TAG, "Candidate não tem content");
-            }
-        }
-        
-        if (searchItems.size() < 3) {
-            Log.w(TAG, "Poucas pesquisas extraídas (" + searchItems.size() + "), usando fallback");
+        if (!response.has("candidates")) {
+            Log.w(TAG, "Resposta sem candidates - usando fallback");
             return SmartSearchGenerator.generateSmartSearches(10);
         }
         
-        Log.d(TAG, "Total extraído: " + searchItems.size() + " pesquisas");
+        JSONArray candidates = response.getJSONArray("candidates");
+        if (candidates.length() == 0) {
+            Log.w(TAG, "Array de candidates vazio - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        JSONObject candidate = candidates.getJSONObject(0);
+        
+        // Verificar se a resposta foi bloqueada por segurança
+        if (candidate.has("finishReason")) {
+            String finishReason = candidate.getString("finishReason");
+            Log.d(TAG, "Finish reason: " + finishReason);
+            
+            if ("SAFETY".equals(finishReason) || "BLOCKED".equals(finishReason)) {
+                Log.w(TAG, "Resposta bloqueada por segurança - usando fallback");
+                return SmartSearchGenerator.generateSmartSearches(10);
+            }
+            
+            if ("MAX_TOKENS".equals(finishReason)) {
+                Log.w(TAG, "Resposta truncada - usando fallback");
+                return SmartSearchGenerator.generateSmartSearches(10);
+            }
+        }
+        
+        // Extrair conteúdo
+        if (!candidate.has("content")) {
+            Log.w(TAG, "Candidate sem content - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        JSONObject content = candidate.getJSONObject("content");
+        
+        if (!content.has("parts")) {
+            Log.w(TAG, "Content sem parts - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        JSONArray parts = content.getJSONArray("parts");
+        if (parts.length() == 0) {
+            Log.w(TAG, "Parts array vazio - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        JSONObject part = parts.getJSONObject(0);
+        
+        if (!part.has("text")) {
+            Log.w(TAG, "Part sem text - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        String generatedText = part.getString("text").trim();
+        Log.d(TAG, "Texto gerado bruto: " + generatedText);
+        
+        if (generatedText.isEmpty()) {
+            Log.w(TAG, "Texto gerado vazio - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        // Processar o texto linha por linha
+        String[] lines = generatedText.split("\n");
+        int index = 1;
+        
+        for (String line : lines) {
+            String cleanLine = line.trim();
+            
+            // Filtrar linhas válidas
+            if (isValidSearchTerm(cleanLine)) {
+                searchItems.add(new SearchItem(cleanLine, index++));
+                Log.d(TAG, "Termo adicionado: " + cleanLine);
+            } else {
+                Log.d(TAG, "Termo rejeitado: " + cleanLine);
+            }
+        }
+        
+        // Verificar se conseguimos extrair termos suficientes
+        if (searchItems.size() < 3) {
+            Log.w(TAG, "Poucos termos extraídos (" + searchItems.size() + ") - usando fallback");
+            return SmartSearchGenerator.generateSmartSearches(10);
+        }
+        
+        Log.d(TAG, "Sucesso: " + searchItems.size() + " termos de pesquisa extraídos");
         return searchItems;
+    }
+    
+    /**
+     * Valida se uma linha é um termo de pesquisa válido
+     */
+    private static boolean isValidSearchTerm(String term) {
+        if (term == null || term.isEmpty()) {
+            return false;
+        }
+        
+        // Remover caracteres especiais comuns
+        term = term.replaceAll("^[-*•\\d+\\.\\s]+", "").trim();
+        
+        // Verificações de validade
+        return term.length() >= 2 && 
+               term.length() <= 100 &&
+               !term.contains(":") &&
+               !term.toLowerCase().contains("gere") &&
+               !term.toLowerCase().contains("liste") &&
+               !term.toLowerCase().contains("termos") &&
+               !term.toLowerCase().contains("pesquisa") &&
+               !term.toLowerCase().matches(".*\\b(um|uma|cada|linha|separada|inclua|responda|apenas)\\b.*") &&
+               !term.matches("^\\d+$") && // Evitar apenas números
+               term.matches(".*[a-zA-ZÀ-ÿ]+.*"); // Deve ter pelo menos uma letra
     }
     
     /**
