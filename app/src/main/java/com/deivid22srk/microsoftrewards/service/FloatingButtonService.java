@@ -166,13 +166,7 @@ public class FloatingButtonService extends Service {
         dragHandle = floatingView.findViewById(R.id.dragHandle);
         statusText = floatingView.findViewById(R.id.statusText);
         
-        // Configurar click listeners dos botões de controle
-        setupControlButtons();
-        
-        // Configurar sistema de drag melhorado
-        setupImprovedDragSystem(params);
-        
-        // Configurar parâmetros da janela otimizados
+        // Configurar parâmetros da janela otimizados PRIMEIRO
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -186,6 +180,12 @@ public class FloatingButtonService extends Service {
         params.gravity = Gravity.TOP | Gravity.END; // Posição inicial melhor
         params.x = 50;
         params.y = 200;
+        
+        // Configurar click listeners dos botões de controle
+        setupControlButtons();
+        
+        // Configurar sistema de drag melhorado
+        setupImprovedDragSystem(params);
         
         // Configurar progress bar inicial
         progressBar.setMax(100);
