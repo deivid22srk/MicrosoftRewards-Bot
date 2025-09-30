@@ -5,8 +5,11 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -42,11 +45,25 @@ public class SearchAutomationService extends Service {
     private List<SearchItem> searchItems;
     private int currentSearchIndex = 0;
     private boolean isRunning = false;
+    private boolean isPaused = false;
     private int countdownSeconds = 5;
     
     // 🛠️ Configurações avançadas
     private AppConfig config;
     private Random randomGenerator;
+    
+    // Broadcast receiver para comandos de controle
+    private BroadcastReceiver controlReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (FloatingButtonService.ACTION_PAUSE_RESUME.equals(action)) {
+                togglePauseResume();
+            } else if (FloatingButtonService.ACTION_STOP_AUTOMATION.equals(action)) {
+                stopAutomation();
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -57,6 +74,13 @@ public class SearchAutomationService extends Service {
         createNotificationChannel();
         handler = new Handler(Looper.getMainLooper());
         countdownHandler = new Handler(Looper.getMainLooper());
+        
+        // Registrar receiver para comandos de controle
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(FloatingButtonService.ACTION_PAUSE_RESUME);
+        filter.addAction(FloatingButtonService.ACTION_STOP_AUTOMATION);
+        LocalBroadcastManager.getInstance(this).registerReceiver(controlReceiver, filter);
+        
         Log.d(TAG, "SearchAutomationService created with advanced config");
     }
 
@@ -120,6 +144,13 @@ public class SearchAutomationService extends Service {
             completeAutomation();
             return;
         }
+        
+        // Verificar se está pausado
+        if (isPaused) {
+            updateNotification("⏸️ Automação pausada");
+            updateFloatingButton("PAUSED");
+            return;
+        }
 
         // Usar intervalo configurável com delay aleatório
         int delayTime = config.getActualSearchInterval();
@@ -141,6 +172,13 @@ public class SearchAutomationService extends Service {
     private void runCountdown() {
         if (!isRunning) return;
         
+        // Verificar se foi pausado durante o countdown
+        if (isPaused) {
+            updateNotification("⏸️ Automação pausada durante countdown");
+            updateFloatingButton("PAUSED");
+            return;
+        }
+        
         if (countdownSeconds > 0) {
             updateNotification(String.format("⏰ Próxima pesquisa em %ds (Config: %ds)", 
                                countdownSeconds, config.getSearchInterval()));
@@ -154,7 +192,12 @@ public class SearchAutomationService extends Service {
     }
 
     private void executeCurrentSearch() {
-        if (!isRunning || searchItems == null || currentSearchIndex >= searchItems.size()) {
+        if (!isRunning || isPaused || searchItems == null || currentSearchIndex >= searchItems.size()) {
+            if (isPaused) {
+                updateNotification("⏸️ Automação pausada");
+                updateFloatingButton("PAUSED");
+                return;
+            }
             completeAutomation();
             return;
         }
@@ -343,10 +386,53 @@ public class SearchAutomationService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    private void togglePauseResume() {
+        isPaused = !isPaused;
+        
+        if (isPaused) {
+            Log.d(TAG, "⏸️ Automation paused");
+            updateNotification("⏸️ Automação pausada - Clique em play para continuar");
+            updateFloatingButton("PAUSED");
+            
+            // Parar handlers ativos
+            if (countdownHandler != null) {
+                countdownHandler.removeCallbacksAndMessages(null);
+            }
+        } else {
+            Log.d(TAG, "▶️ Automation resumed");
+            updateNotification("▶️ Automação retomada");
+            updateFloatingButton("RESUMED");
+            
+            // Retomar automação
+            handler.postDelayed(this::startSearchAutomation, 1000);
+        }
+    }
+    
+    private void stopAutomation() {
+        Log.d(TAG, "🛑 Stopping automation via floating button");
+        isRunning = false;
+        isPaused = false;
+        
+        // Parar todos os handlers
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        if (countdownHandler != null) {
+            countdownHandler.removeCallbacksAndMessages(null);
+        }
+        
+        updateNotification("🛑 Automação interrompida pelo usuário");
+        updateFloatingButton("COMPLETED");
+        
+        // Parar o serviço
+        stopSelf();
+    }
+    
     @Override
     public void onDestroy() {
         super.onDestroy();
         isRunning = false;
+        isPaused = false;
         
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
@@ -355,6 +441,9 @@ public class SearchAutomationService extends Service {
         if (countdownHandler != null) {
             countdownHandler.removeCallbacksAndMessages(null);
         }
+        
+        // Desregistrar receiver
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(controlReceiver);
         
         Log.d(TAG, "🛑 Advanced SearchAutomationService destroyed");
     }

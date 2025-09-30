@@ -21,6 +21,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
@@ -40,21 +41,28 @@ public class FloatingButtonService extends Service {
     private static final int NOTIFICATION_ID = 1;
     
     public static final String ACTION_UPDATE_PROGRESS = "com.deivid22srk.microsoftrewards.UPDATE_PROGRESS";
+    public static final String ACTION_PAUSE_RESUME = "com.deivid22srk.microsoftrewards.PAUSE_RESUME";
+    public static final String ACTION_STOP_AUTOMATION = "com.deivid22srk.microsoftrewards.STOP_AUTOMATION";
     public static final String EXTRA_CURRENT_INDEX = "current_index";
     public static final String EXTRA_TOTAL_COUNT = "total_count";
     public static final String EXTRA_CURRENT_SEARCH = "current_search";
     public static final String EXTRA_STATUS = "status";
+    public static final String EXTRA_IS_PAUSED = "is_paused";
     
     private WindowManager windowManager;
     private View floatingView;
     private TextView progressText;
     private ImageView floatingIcon;
     private CircularProgressIndicator progressBar;
+    private LinearLayout controlButtonsContainer;
+    private ImageView pausePlayButton;
+    private ImageView stopButton;
     
     private int currentIndex = 0;
     private int totalCount = 0;
     private String currentSearch = "";
     private boolean isRunning = false;
+    private boolean isPaused = false;
     
     private List<SearchItem> searchItems;
     
@@ -147,6 +155,12 @@ public class FloatingButtonService extends Service {
         progressText = floatingView.findViewById(R.id.floatingProgressText);
         floatingIcon = floatingView.findViewById(R.id.floatingIcon);
         progressBar = floatingView.findViewById(R.id.floatingProgressBar);
+        controlButtonsContainer = floatingView.findViewById(R.id.controlButtonsContainer);
+        pausePlayButton = floatingView.findViewById(R.id.pausePlayButton);
+        stopButton = floatingView.findViewById(R.id.stopButton);
+        
+        // Configurar click listeners dos botões de controle
+        setupControlButtons();
         
         // Configurar parâmetros da janela
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -169,12 +183,16 @@ public class FloatingButtonService extends Service {
         // Adicionar à janela
         windowManager.addView(floatingView, params);
         
-        // Click listener para abrir app principal
-        floatingView.setOnClickListener(v -> {
+        // Click listener para abrir app principal (apenas no ícone principal)
+        floatingIcon.setOnClickListener(v -> {
             Intent intent = new Intent(this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         });
+        
+        // Configurar progress bar inicial
+        progressBar.setMax(100);
+        progressBar.setProgress(0);
         
         // Estado inicial
         updateFloatingButton("IDLE");
@@ -219,6 +237,40 @@ public class FloatingButtonService extends Service {
         });
     }
 
+    private void setupControlButtons() {
+        // Botão pause/play
+        pausePlayButton.setOnClickListener(v -> {
+            sendPauseResumeCommand();
+        });
+        
+        // Botão stop
+        stopButton.setOnClickListener(v -> {
+            sendStopCommand();
+        });
+    }
+    
+    private void sendPauseResumeCommand() {
+        Intent intent = new Intent(ACTION_PAUSE_RESUME);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        
+        // Inverter estado de pause localmente para atualizar UI imediatamente
+        isPaused = !isPaused;
+        updatePausePlayButton();
+    }
+    
+    private void sendStopCommand() {
+        Intent intent = new Intent(ACTION_STOP_AUTOMATION);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+    
+    private void updatePausePlayButton() {
+        if (isPaused) {
+            pausePlayButton.setImageResource(R.drawable.ic_play_arrow);
+        } else {
+            pausePlayButton.setImageResource(R.drawable.ic_pause);
+        }
+    }
+    
     private void updateFloatingButton(String status) {
         if (floatingView == null) return;
         
@@ -226,10 +278,17 @@ public class FloatingButtonService extends Service {
             // Atualizar texto de progresso
             progressText.setText(currentIndex + "/" + totalCount);
             
-            // Atualizar barra de progresso
+            // Atualizar barra de progresso com correção de cores
             if (totalCount > 0) {
                 int progress = (int) ((currentIndex / (float) totalCount) * 100);
                 progressBar.setProgress(progress);
+                
+                // Garantir que a progress bar tenha as cores corretas
+                int[] colors = { getResources().getColor(R.color.microsoft_green, null) };
+                progressBar.setIndicatorColor(colors);
+                
+                // Forçar redraw para garantir que as cores sejam aplicadas
+                progressBar.invalidate();
             }
             
             // Atualizar aparência baseada no status
@@ -237,20 +296,55 @@ public class FloatingButtonService extends Service {
                 case "STARTED":
                 case "IN_PROGRESS":
                     progressBar.setVisibility(View.VISIBLE);
-                    floatingIcon.setAlpha(0.8f);
+                    controlButtonsContainer.setVisibility(View.VISIBLE);
+                    floatingIcon.setAlpha(0.9f);
+                    isRunning = true;
+                    break;
+                    
+                case "PAUSED":
+                    progressBar.setVisibility(View.VISIBLE);
+                    controlButtonsContainer.setVisibility(View.VISIBLE);
+                    floatingIcon.setAlpha(0.6f);
+                    isPaused = true;
+                    updatePausePlayButton();
+                    break;
+                    
+                case "RESUMED":
+                    progressBar.setVisibility(View.VISIBLE);
+                    controlButtonsContainer.setVisibility(View.VISIBLE);
+                    floatingIcon.setAlpha(0.9f);
+                    isPaused = false;
+                    updatePausePlayButton();
                     break;
                     
                 case "COMPLETED":
                     progressBar.setVisibility(View.GONE);
+                    controlButtonsContainer.setVisibility(View.GONE);
                     floatingIcon.setAlpha(1.0f);
+                    isRunning = false;
+                    isPaused = false;
                     // Pode adicionar animação de sucesso aqui
+                    break;
+                    
+                case "COUNTDOWN":
+                    progressBar.setVisibility(View.VISIBLE);
+                    controlButtonsContainer.setVisibility(View.VISIBLE);
+                    floatingIcon.setAlpha(0.7f);
                     break;
                     
                 case "IDLE":
                 default:
                     progressBar.setVisibility(View.GONE);
+                    controlButtonsContainer.setVisibility(View.GONE);
                     floatingIcon.setAlpha(1.0f);
+                    isRunning = false;
+                    isPaused = false;
                     break;
+            }
+            
+            // Atualizar botão de pause/play se necessário
+            if (isRunning) {
+                updatePausePlayButton();
             }
         });
     }
