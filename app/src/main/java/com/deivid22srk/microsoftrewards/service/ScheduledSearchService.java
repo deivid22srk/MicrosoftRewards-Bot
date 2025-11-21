@@ -18,6 +18,7 @@ import androidx.core.app.NotificationCompat;
 import com.deivid22srk.microsoftrewards.R;
 import com.deivid22srk.microsoftrewards.model.SearchItem;
 import com.deivid22srk.microsoftrewards.utils.AppConfig;
+import com.deivid22srk.microsoftrewards.utils.RootManager;
 import com.deivid22srk.microsoftrewards.utils.SmartSearchGenerator;
 
 import java.util.ArrayList;
@@ -32,12 +33,27 @@ public class ScheduledSearchService extends Service {
     
     private PowerManager.WakeLock wakeLock;
     private AppConfig config;
+    private RootManager rootManager;
     private boolean isTest = false;
+    private boolean useRoot = false;
     
     @Override
     public void onCreate() {
         super.onCreate();
         config = AppConfig.getInstance(this);
+        rootManager = RootManager.getInstance();
+        
+        // Verificar se tem ROOT
+        useRoot = rootManager.isRootGranted();
+        Log.d(TAG, useRoot ? "✅ ROOT disponível" : "⚠️ ROOT não disponível");
+        
+        // Se tiver ROOT, usar comandos ROOT para garantir execução
+        if (useRoot) {
+            Log.d(TAG, "🔐 Usando ROOT para garantir execução");
+            rootManager.disableDozeMode();
+            rootManager.wakeDevice();
+            rootManager.disableBatteryOptimization(getPackageName());
+        }
         
         // Adquirir WakeLock para funcionar com tela desligada
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
@@ -164,11 +180,11 @@ public class ScheduledSearchService extends Service {
             // Gerar pesquisas
             List<SearchItem> searches = SmartSearchGenerator.generateOfflineIntelligentSearches(count, this);
             
-            // Configurar para usar Chrome
+            // Configurar para usar Chrome COM MOTOR BING
             AppConfig.SearchEngine originalEngine = config.getSearchEngine();
             AppConfig.BrowserApp originalBrowser = config.getBrowserApp();
             
-            config.setSearchEngine(AppConfig.SearchEngine.GOOGLE);
+            config.setSearchEngine(AppConfig.SearchEngine.BING); // USAR BING NO CHROME
             config.setBrowserApp(AppConfig.BrowserApp.CHROME);
             
             // Iniciar automação
@@ -273,6 +289,12 @@ public class ScheduledSearchService extends Service {
         
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
+        }
+        
+        // Re-habilitar Doze mode se usou ROOT
+        if (useRoot && rootManager != null) {
+            rootManager.enableDozeMode();
+            Log.d(TAG, "🔓 Doze mode re-habilitado");
         }
         
         Log.d(TAG, "🛑 Serviço finalizado");

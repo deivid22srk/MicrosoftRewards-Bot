@@ -25,6 +25,7 @@ import com.deivid22srk.microsoftrewards.MainActivity;
 import com.deivid22srk.microsoftrewards.R;
 import com.deivid22srk.microsoftrewards.model.SearchItem;
 import com.deivid22srk.microsoftrewards.utils.AppConfig;
+import com.deivid22srk.microsoftrewards.utils.RootManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +53,7 @@ public class SearchAutomationService extends Service {
     
     // 🛠️ Configurações avançadas
     private AppConfig config;
+    private RootManager rootManager;
     private Random randomGenerator;
     
     // Broadcast receiver para comandos de controle
@@ -71,6 +73,7 @@ public class SearchAutomationService extends Service {
     public void onCreate() {
         super.onCreate();
         config = AppConfig.getInstance(this);
+        rootManager = RootManager.getInstance();
         randomGenerator = new Random();
         
         createNotificationChannel();
@@ -249,21 +252,33 @@ public class SearchAutomationService extends Service {
             String searchUrl = config.buildSearchUrl(searchQuery);
             Log.d(TAG, "🌐 Built search URL: " + searchUrl);
             
-            // 2. Configurar Intent com flags personalizáveis
+            // 2. SE TIVER ROOT, tentar usar comandos shell primeiro (mais confiável)
+            if (rootManager != null && rootManager.isRootGranted()) {
+                Log.d(TAG, "🔐 Tentando abrir com ROOT...");
+                boolean rootSuccess = tryOpenWithRoot(searchUrl);
+                if (rootSuccess) {
+                    Log.d(TAG, "✅ Aberto com sucesso usando ROOT");
+                    return true;
+                } else {
+                    Log.w(TAG, "⚠️ Falha com ROOT, tentando método normal...");
+                }
+            }
+            
+            // 3. Configurar Intent com flags personalizáveis
             Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
             configureBrowserIntent(browserIntent);
             
-            // 3. Tentar app de navegador configurado
+            // 4. Tentar app de navegador configurado
             AppConfig.BrowserApp preferredBrowser = config.getBrowserApp();
             boolean success = tryOpenInBrowser(browserIntent, preferredBrowser, searchUrl);
             
-            // 4. Fallback para Chrome se habilitado
+            // 5. Fallback para Chrome se habilitado
             if (!success && config.isChromeFallbackEnabled() && preferredBrowser != AppConfig.BrowserApp.CHROME) {
                 Log.d(TAG, "🔄 Trying Chrome fallback...");
                 success = tryOpenInBrowser(browserIntent, AppConfig.BrowserApp.CHROME, searchUrl);
             }
             
-            // 5. Fallback para navegador padrão
+            // 6. Fallback para navegador padrão
             if (!success) {
                 Log.d(TAG, "🔄 Trying default browser...");
                 success = tryOpenInDefaultBrowser(browserIntent, searchUrl);
@@ -274,6 +289,54 @@ public class SearchAutomationService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "❌ Error in advanced browser search: " + e.getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * 🔐 Abre navegador usando ROOT (mais confiável com tela desligada)
+     */
+    private boolean tryOpenWithRoot(String url) {
+        try {
+            AppConfig.BrowserApp browser = config.getBrowserApp();
+            String packageName = browser.getPackageName();
+            
+            // Acordar dispositivo primeiro
+            rootManager.wakeDevice();
+            
+            // Construir comando am start
+            String component = getComponentForBrowser(browser);
+            String command = String.format(
+                "am start -a android.intent.action.VIEW -d '%s' %s",
+                url,
+                component != null ? "-n " + component : "-p " + packageName
+            );
+            
+            Log.d(TAG, "📱 Executando: " + command);
+            String result = rootManager.executeRootCommand(command);
+            
+            return result != null && (result.contains("Starting") || result.contains("Success"));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Erro ao abrir com ROOT: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Retorna o componente específico para cada navegador
+     */
+    private String getComponentForBrowser(AppConfig.BrowserApp browser) {
+        switch (browser) {
+            case CHROME:
+                return "com.android.chrome/com.google.android.apps.chrome.Main";
+            case BING:
+                return "com.microsoft.bing/com.microsoft.sapphire.app.main.MainActivity";
+            case EDGE:
+                return "com.microsoft.emmx/com.microsoft.ruby.Main";
+            case FIREFOX:
+                return "org.mozilla.firefox/.App";
+            default:
+                return null;
         }
     }
     

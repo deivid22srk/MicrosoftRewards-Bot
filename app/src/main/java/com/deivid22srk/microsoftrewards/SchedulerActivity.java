@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat;
 
 import com.deivid22srk.microsoftrewards.service.SchedulerBroadcastReceiver;
 import com.deivid22srk.microsoftrewards.utils.AppConfig;
+import com.deivid22srk.microsoftrewards.utils.RootManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.Calendar;
@@ -131,6 +132,9 @@ public class SchedulerActivity extends AppCompatActivity {
     }
     
     private void checkPermissions() {
+        // Verificar ROOT primeiro
+        checkRootAccess();
+        
         // Verificar permissão de bateria
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -186,6 +190,62 @@ public class SchedulerActivity extends AppCompatActivity {
                 }
             })
             .setNegativeButton("Depois", null)
+            .show();
+    }
+    
+    private void checkRootAccess() {
+        RootManager rootManager = RootManager.getInstance();
+        
+        if (rootManager.isRootAvailable()) {
+            if (!rootManager.isRootGranted()) {
+                showRootRequestDialog();
+            } else {
+                Toast.makeText(this, "✅ ROOT disponível e ativo", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            showNoRootWarning();
+        }
+    }
+    
+    private void showRootRequestDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("🔐 Permissões ROOT")
+            .setMessage("Para garantir 100% de confiabilidade na execução automática (especialmente com tela desligada), o app precisa de permissões ROOT.\n\n✅ COM ROOT:\n• Executa SEMPRE no horário exato\n• Funciona com tela desligada\n• Não é afetado por economia de bateria\n\n⚠️ SEM ROOT:\n• Pode falhar em alguns dispositivos\n• Depende de otimizações do sistema\n\nDeseja conceder permissões ROOT agora?")
+            .setPositiveButton("Conceder ROOT", (dialog, which) -> {
+                new Thread(() -> {
+                    RootManager rootManager = RootManager.getInstance();
+                    boolean granted = rootManager.requestRootAccess();
+                    
+                    runOnUiThread(() -> {
+                        if (granted) {
+                            Toast.makeText(this, "✅ Permissões ROOT concedidas!", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(this, "❌ Permissões ROOT negadas", Toast.LENGTH_LONG).show();
+                            showNoRootWarning();
+                        }
+                    });
+                }).start();
+            })
+            .setNegativeButton("Usar sem ROOT", (dialog, which) -> {
+                showNoRootWarning();
+            })
+            .setCancelable(false)
+            .show();
+    }
+    
+    private void showNoRootWarning() {
+        new AlertDialog.Builder(this)
+            .setTitle("⚠️ Modo sem ROOT")
+            .setMessage("O app funcionará sem ROOT, mas:\n\n" +
+                       "• Pode NÃO executar em alguns dispositivos\n" +
+                       "• Pode falhar com tela desligada\n" +
+                       "• Depende de otimizações do Android\n\n" +
+                       "Recomendações:\n" +
+                       "1. Desative otimização de bateria\n" +
+                       "2. Deixe o celular carregando\n" +
+                       "3. Teste antes de confiar no agendamento\n\n" +
+                       "Para melhor confiabilidade, considere usar ROOT.")
+            .setPositiveButton("Entendi", null)
             .show();
     }
     
