@@ -1,0 +1,112 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.deivid22srk.microsoftrewards'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.deivid22srk.microsoftrewards"
+        minSdk 21
+        targetSdk 34
+        versionCode 2
+        versionName "2.0.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // 🔐 Signing Configurations
+    signingConfigs {
+        release {
+            // Check if keystore properties exist
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Use signing config if available
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            
+            // Build optimization
+            zipAlignEnabled true
+            debuggable false
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-DEBUG"
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    // 📦 APK Output naming
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def appName = "MicrosoftRewardsBot"
+            def versionName = variant.versionName
+            def buildType = variant.buildType.name
+            def date = new Date().format('yyyy-MM-dd')
+            
+            outputFileName = "${appName}-v${versionName}-${buildType}-${date}.apk"
+        }
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    
+    // Para overlay window
+    implementation 'androidx.lifecycle:lifecycle-service:2.6.2'
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
+    
+    // Para configurações avançadas
+    implementation 'androidx.preference:preference:1.2.1'
+    
+    // Para requisições HTTP (Gemini API)
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.json:json:20231013'
+    
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

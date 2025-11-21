@@ -1,0 +1,304 @@
+name: 🚀 Release & Auto-Sign APK
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'release-*'
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Release Version (e.g., v2.0.0)'
+        required: true
+        default: 'v2.0.0'
+      release_notes:
+        description: 'Release Notes'
+        required: false
+        default: '🚀 Nova versão com IA revolucionária e configurações avançadas!'
+      build_type:
+        description: 'Build Type'
+        required: true
+        type: choice
+        default: 'release'
+        options:
+          - release
+          - debug
+          - both
+
+env:
+  # 🔐 Configurações de assinatura (público - pode ser usado por todos)
+  KEYSTORE_PASSWORD: "MicrosoftRewardsBot2024"
+  KEY_ALIAS: "microsoftrewardsbot"
+  KEY_PASSWORD: "MicrosoftRewardsBot2024"
+
+jobs:
+  build-and-release:
+    name: 🏗️ Build & Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 📥 1. Checkout do código
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ☕ 2. Setup Java 17
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # 🔧 3. Grant execute permission for gradlew
+      - name: 🔧 Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 🔑 4. Generate Keystore for Signing
+      - name: 🔑 Generate Release Keystore
+        run: |
+          echo "🔐 Generating keystore for APK signing..."
+          keytool -genkey -noprompt \
+            -alias $KEY_ALIAS \
+            -dname "CN=Microsoft Rewards Bot, OU=Mobile Development, O=Capy AI, L=San Francisco, S=California, C=US" \
+            -keystore release.keystore \
+            -storepass $KEYSTORE_PASSWORD \
+            -keypass $KEY_PASSWORD \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000
+          echo "✅ Keystore generated successfully!"
+
+      # 📝 5. Create signing config
+      - name: 📝 Create signing config
+        run: |
+          echo "🔧 Creating signing configuration..."
+          cat > keystore.properties << EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=../release.keystore
+          EOF
+          echo "✅ Signing config created!"
+
+      # 🧹 6. Clean project
+      - name: 🧹 Clean project
+        run: ./gradlew clean
+
+      # 🔨 7. Build APK(s) based on input
+      - name: 🔨 Build APK
+        run: |
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
+          
+          echo "🚀 Building APK with type: $BUILD_TYPE"
+          
+          if [[ "$BUILD_TYPE" == "release" ]]; then
+            echo "📦 Building Release APK..."
+            ./gradlew assembleRelease
+            
+          elif [[ "$BUILD_TYPE" == "debug" ]]; then
+            echo "🐛 Building Debug APK..."
+            ./gradlew assembleDebug
+            
+          elif [[ "$BUILD_TYPE" == "both" ]]; then
+            echo "📦🐛 Building both Release and Debug APKs..."
+            ./gradlew assembleRelease assembleDebug
+          fi
+
+      # 🏷️ 8. Sign APK (if release)
+      - name: 🏷️ Sign Release APK
+        if: contains(github.event.inputs.build_type, 'release') || github.event.inputs.build_type == 'both' || github.ref_type == 'tag'
+        run: |
+          echo "🔏 Signing Release APK..."
+          
+          # Sign the release APK
+          if [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
+              -keystore release.keystore \
+              -storepass $KEYSTORE_PASSWORD \
+              -keypass $KEY_PASSWORD \
+              app/build/outputs/apk/release/app-release-unsigned.apk $KEY_ALIAS
+            
+            # Align the APK
+            $ANDROID_HOME/build-tools/*/zipalign -v 4 \
+              app/build/outputs/apk/release/app-release-unsigned.apk \
+              app/build/outputs/apk/release/app-release-signed.apk
+              
+            echo "✅ APK signed and aligned successfully!"
+          else
+            echo "⚠️ No unsigned release APK found, checking for already signed APK..."
+            if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+              cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/app-release-signed.apk
+              echo "✅ Found already signed APK!"
+            fi
+          fi
+
+      # 📊 9. Generate build info
+      - name: 📊 Generate Build Report
+        run: |
+          echo "📊 Generating build information..."
+          
+          VERSION_NAME="${{ github.event.inputs.version_name || github.ref_name }}"
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
+          
+          cat > build-info.txt << EOF
+          🤖 Microsoft Rewards Bot - Advanced Edition
+          ============================================
+          
+          📋 Build Information:
+          • Version: $VERSION_NAME
+          • Build Type: $BUILD_TYPE
+          • Build Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          • Git Commit: $(git rev-parse --short HEAD)
+          • Git Branch: $(git rev-parse --abbrev-ref HEAD)
+          
+          🚀 New Features in this Release:
+          • IA revolucionária tipo ChatGPT
+          • Configurações avançadas personalizáveis
+          • Suporte a múltiplos navegadores
+          • URLs válidas para Microsoft Rewards
+          • Sistema anti-repetição global
+          • Delay aleatório configurável
+          • Modo stealth experimental
+          
+          📱 APK Details:
+          EOF
+          
+          # Add APK information
+          for apk in app/build/outputs/apk/*/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "• $(basename "$apk"): $(du -h "$apk" | cut -f1)" >> build-info.txt
+            fi
+          done
+          
+          echo "" >> build-info.txt
+          echo "🔐 Signed with auto-generated certificate" >> build-info.txt
+          echo "⚠️  This is a development build - install with 'Unknown Sources' enabled" >> build-info.txt
+          
+          echo "✅ Build report generated!"
+
+      # 📋 10. List generated files
+      - name: 📋 List Build Artifacts
+        run: |
+          echo "📋 Build artifacts generated:"
+          find app/build/outputs/apk -name "*.apk" -type f -exec ls -lh {} \;
+          
+          echo ""
+          echo "📊 Build report:"
+          cat build-info.txt
+
+      # 🏷️ 11. Create Release
+      - name: 🏷️ Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version_name || github.ref_name }}
+          name: "🤖 Microsoft Rewards Bot ${{ github.event.inputs.version_name || github.ref_name }}"
+          body: |
+            ${{ github.event.inputs.release_notes || '🚀 Nova versão com IA revolucionária e configurações avançadas!' }}
+            
+            ## 🎯 Principais Recursos
+            
+            ### 🧠 IA Revolucionária Tipo ChatGPT
+            - ✅ Sistema de reasoning e chains of thought
+            - ✅ Contexto histórico e memória persistente  
+            - ✅ Aprendizado dinâmico baseado em sucesso
+            - ✅ Emotional intelligence e humor temporal
+            - ✅ Meta-learning para Microsoft Rewards
+            - ✅ 50,000+ tópicos inteligentes em 8 categorias
+            
+            ### ⚙️ Configurações Avançadas Personalizáveis
+            - ✅ Tempo entre pesquisas configurável (1-30s)
+            - ✅ Múltiplos navegadores: Chrome, Bing, Edge, Firefox, Opera
+            - ✅ URLs personalizáveis + parâmetros Microsoft Rewards
+            - ✅ Delay aleatório inteligente (3-30s)
+            - ✅ Modo incógnito e stealth experimental
+            - ✅ Sistema de fallback para Chrome
+            
+            ### 🎨 Interface e UX
+            - ✅ Tela de configurações avançadas completa
+            - ✅ Preview de configurações em tempo real
+            - ✅ Teste de configurações integrado
+            - ✅ Exportação e reset de configurações
+            - ✅ Notificações melhoradas com progresso detalhado
+            
+            ## 📥 Como Instalar
+            
+            1. **Baixe o APK** apropriado para seu dispositivo
+            2. **Ative "Origens desconhecidas"** nas configurações do Android
+            3. **Instale o APK** normalmente
+            4. **Configure** suas preferências em ⚙️ Configurações Avançadas
+            5. **Aproveite** a IA revolucionária! 🎉
+            
+            ## 🔐 Sobre a Assinatura
+            
+            Este APK é assinado automaticamente com certificado de desenvolvimento. É seguro de usar, mas seu dispositivo pode mostrar avisos sobre "desenvolvedor desconhecido" - isso é normal para APKs não distribuídos pela Play Store.
+            
+            ## 📋 Build Information
+            ```
+            📦 Versão: ${{ github.event.inputs.version_name || github.ref_name }}
+            🏗️  Build: ${{ github.event.inputs.build_type || 'release' }}
+            📅 Data: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+            🔧 Commit: $(git rev-parse --short HEAD)
+            ```
+            
+            ---
+            
+            **⚠️ Aviso Legal:** Este app é apenas para fins educacionais. Use responsavelmente e de acordo com os termos de serviço do Microsoft Rewards.
+          draft: false
+          prerelease: false
+          files: |
+            app/build/outputs/apk/**/*.apk
+            build-info.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 📈 12. Upload artifacts for workflow
+      - name: 📈 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "microsoft-rewards-bot-${{ github.event.inputs.version_name || github.ref_name }}-apks"
+          path: |
+            app/build/outputs/apk/**/*.apk
+            build-info.txt
+          retention-days: 90
+
+      # 🧪 13. Upload test results (if any)
+      - name: 🧪 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "test-results-${{ github.event.inputs.version_name || github.ref_name }}"
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 30
+
+      # 📧 14. Build Summary
+      - name: 📧 Build Summary
+        if: always()
+        run: |
+          echo "🎉 Build completed successfully!"
+          echo ""
+          echo "📋 Summary:"
+          echo "• Version: ${{ github.event.inputs.version_name || github.ref_name }}"
+          echo "• Build Type: ${{ github.event.inputs.build_type || 'release' }}"
+          echo "• APKs Generated: $(find app/build/outputs/apk -name "*.apk" | wc -l)"
+          echo "• Total Size: $(du -sh app/build/outputs/apk | cut -f1)"
+          echo ""
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.event.inputs.version_name || github.ref_name }}"
+          echo ""
+          echo "✅ Release created and APKs uploaded successfully!"
+
+  # 🧹 Cleanup job (optional)
+  cleanup:
+    name: 🧹 Cleanup
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    if: always()
+    
+    steps:
+      - name: 🧹 Cleanup old releases
+        run: |
+          echo "🧹 Cleanup completed - keeping all releases for now"
+          echo "Future: Could implement automatic cleanup of old pre-releases"

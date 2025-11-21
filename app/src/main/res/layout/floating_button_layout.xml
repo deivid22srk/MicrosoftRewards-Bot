@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/floating_main_background"
+    android:padding="12dp"
+    android:elevation="8dp">
+
+    <!-- Área de drag principal -->
+    <LinearLayout
+        android:id="@+id/dragArea"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="4dp"
+        android:background="@drawable/floating_background"
+        android:layout_centerHorizontal="true">
+
+        <!-- Ícone de drag -->
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="20dp"
+            android:layout_height="8dp"
+            android:src="@drawable/ic_drag_handle"
+            android:layout_marginBottom="4dp"
+            android:contentDescription="Arrastar para mover" />
+
+        <!-- Container para ícone principal e progress -->
+        <RelativeLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center">
+
+            <!-- Ícone principal do app -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/floatingIcon"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_centerInParent="true"
+                android:src="@drawable/ic_launcher_foreground"
+                android:background="@drawable/floating_icon_background"
+                app:shapeAppearanceOverlay="@style/CircleImageView"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Progress bar circular -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/floatingProgressBar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_centerInParent="true"
+                app:indicatorSize="48dp"
+                app:trackThickness="3dp"
+                app:indicatorColor="@color/microsoft_green"
+                app:trackColor="@android:color/transparent"
+                app:trackCornerRadius="2dp"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+        <!-- Texto de progresso -->
+        <TextView
+            android:id="@+id/floatingProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="0/30"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/progress_text_background"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:layout_gravity="center" />
+
+    </LinearLayout>
+
+    <!-- Container para botões de controle -->
+    <LinearLayout
+        android:id="@+id/controlButtonsContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/dragArea"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/progress_text_background"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp"
+        android:visibility="gone">
+
+        <!-- Botão de pause/play -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/pausePlayButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_pause"
+            android:background="@drawable/floating_icon_background"
+            android:padding="8dp"
+            android:layout_marginEnd="8dp"
+            app:shapeAppearanceOverlay="@style/CircleImageView"
+            app:tint="@color/white"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Botão de stop -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/stopButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_stop"
+            android:background="@drawable/floating_icon_background"
+            android:padding="8dp"
+            app:shapeAppearanceOverlay="@style/CircleImageView"
+            app:tint="@color/microsoft_red"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <!-- Indicador de status (opcional) -->
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/controlButtonsContainer"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="4dp"
+        android:text="Inativo"
+        android:textSize="9sp"
+        android:textColor="@color/white"
+        android:background="@drawable/progress_text_background"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:alpha="0.8"
+        android:visibility="gone" />
+
+</RelativeLayout>

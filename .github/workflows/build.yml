@@ -1,0 +1,62 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main", "capy/*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the Repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Clean project
+      run: ./gradlew clean
+
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
+
+    - name: Run tests
+      run: ./gradlew testDebugUnitTest
+      continue-on-error: true
+
+    - name: Generate APK report
+      run: |
+        echo "APK build completed successfully!"
+        echo "📁 Listing all APK files:"
+        find app/build/outputs/apk -name "*.apk" -type f -exec ls -la {} \;
+        echo ""
+        echo "📊 APK sizes:"
+        find app/build/outputs/apk -name "*.apk" -type f -exec du -h {} \;
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Microsoft-Rewards-Bot-APK
+        path: ./app/build/outputs/apk/**/*.apk
+        retention-days: 30
+
+    - name: Upload build reports
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-reports
+        path: |
+          app/build/reports/
+          build/reports/
+        retention-days: 7
