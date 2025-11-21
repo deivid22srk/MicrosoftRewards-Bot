@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -39,6 +42,12 @@
             android:theme="@style/Theme.MicrosoftRewardsBot"
             android:parentActivityName=".MainActivity" />
 
+        <activity
+            android:name=".SchedulerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MicrosoftRewardsBot"
+            android:parentActivityName=".MainActivity" />
+
         <service
             android:name=".service.FloatingButtonService"
             android:enabled="true"
@@ -50,6 +59,23 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name=".service.ScheduledSearchService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name=".service.SchedulerBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.deivid22srk.microsoftrewards.SCHEDULED_SEARCH" />
+                <action android:name="com.deivid22srk.microsoftrewards.TEST_SCHEDULED_SEARCH" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

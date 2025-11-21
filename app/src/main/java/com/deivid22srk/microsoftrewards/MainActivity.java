@@ -70,7 +70,10 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_scheduler) {
+            openScheduler();
+            return true;
+        } else if (id == R.id.action_settings) {
             openAdvancedSettings();
             return true;
         } else if (id == R.id.action_about) {
@@ -79,6 +82,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+    
+    private void openScheduler() {
+        Intent intent = new Intent(this, SchedulerActivity.class);
+        startActivity(intent);
     }
     
     private void openAdvancedSettings() {

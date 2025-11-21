@@ -44,6 +44,13 @@ public class AppConfig {
     private static final String KEY_STEALTH_MODE = "stealth_mode";
     private static final String KEY_ROTATE_USER_AGENT = "rotate_user_agent";
     
+    // ⏰ Configurações de Agendamento
+    private static final String KEY_SCHEDULER_ENABLED = "scheduler_enabled";
+    private static final String KEY_SCHEDULER_HOUR = "scheduler_hour";
+    private static final String KEY_SCHEDULER_MINUTE = "scheduler_minute";
+    private static final String KEY_BING_SEARCH_COUNT = "bing_search_count";
+    private static final String KEY_CHROME_SEARCH_COUNT = "chrome_search_count";
+    
     // Valores padrão
     public static final int DEFAULT_SEARCH_INTERVAL = 5; // segundos
     public static final int DEFAULT_COUNTDOWN_INTERVAL = 1; // segundos
@@ -339,6 +346,46 @@ public class AppConfig {
     public boolean hasValidGeminiApiKey() {
         String apiKey = getGeminiApiKey();
         return GeminiSearchGenerator.isValidGeminiApiKey(apiKey);
+    }
+    
+    // ⏰ Getters e Setters para Configurações de Agendamento
+    public boolean isSchedulerEnabled() {
+        return prefs.getBoolean(KEY_SCHEDULER_ENABLED, false);
+    }
+    
+    public void setSchedulerEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_SCHEDULER_ENABLED, enabled).apply();
+    }
+    
+    public int getSchedulerHour() {
+        return prefs.getInt(KEY_SCHEDULER_HOUR, 5);
+    }
+    
+    public int getSchedulerMinute() {
+        return prefs.getInt(KEY_SCHEDULER_MINUTE, 0);
+    }
+    
+    public void setSchedulerTime(int hour, int minute) {
+        prefs.edit()
+            .putInt(KEY_SCHEDULER_HOUR, hour)
+            .putInt(KEY_SCHEDULER_MINUTE, minute)
+            .apply();
+    }
+    
+    public int getBingSearchCount() {
+        return prefs.getInt(KEY_BING_SEARCH_COUNT, 30);
+    }
+    
+    public void setBingSearchCount(int count) {
+        prefs.edit().putInt(KEY_BING_SEARCH_COUNT, count).apply();
+    }
+    
+    public int getChromeSearchCount() {
+        return prefs.getInt(KEY_CHROME_SEARCH_COUNT, 40);
+    }
+    
+    public void setChromeSearchCount(int count) {
+        prefs.edit().putInt(KEY_CHROME_SEARCH_COUNT, count).apply();
     }
     
     // 🔧 Métodos utilitários

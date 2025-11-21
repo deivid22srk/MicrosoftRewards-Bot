@@ -47,6 +47,8 @@ public class SearchAutomationService extends Service {
     private boolean isRunning = false;
     private boolean isPaused = false;
     private int countdownSeconds = 5;
+    private boolean scheduledMode = false;
+    private String browserName = "";
     
     // 🛠️ Configurações avançadas
     private AppConfig config;
@@ -88,6 +90,10 @@ public class SearchAutomationService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.hasExtra("searchItems")) {
             ArrayList<SearchItem> items = (ArrayList<SearchItem>) intent.getSerializableExtra("searchItems");
+            scheduledMode = intent.getBooleanExtra("scheduledMode", false);
+            browserName = intent.getStringExtra("browserName");
+            if (browserName == null) browserName = "";
+            
             if (items != null) {
                 searchItems = items;
                 currentSearchIndex = 0;
@@ -208,7 +214,10 @@ public class SearchAutomationService extends Service {
         Log.d(TAG, String.format("🔍 Executing search %d/%d: %s", 
                                 currentSearchIndex + 1, searchItems.size(), currentItem.getSearchText()));
         
-        updateNotification("🔍 Pesquisando: " + currentItem.getSearchText());
+        String notificationText = scheduledMode && !browserName.isEmpty() 
+            ? String.format("🔍 %s: %s", browserName, currentItem.getSearchText())
+            : "🔍 Pesquisando: " + currentItem.getSearchText();
+        updateNotification(notificationText);
         updateFloatingButton("IN_PROGRESS");
 
         // Abrir navegador com configurações avançadas
@@ -375,6 +384,11 @@ public class SearchAutomationService extends Service {
     }
 
     private void updateFloatingButton(String status) {
+        // Não enviar broadcast se estiver em modo agendado
+        if (scheduledMode) {
+            return;
+        }
+        
         Intent intent = new Intent(FloatingButtonService.ACTION_UPDATE_PROGRESS);
         intent.putExtra(FloatingButtonService.EXTRA_CURRENT_INDEX, currentSearchIndex);
         intent.putExtra(FloatingButtonService.EXTRA_TOTAL_COUNT, searchItems != null ? searchItems.size() : 0);
