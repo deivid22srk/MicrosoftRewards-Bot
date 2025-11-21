@@ -13,11 +13,12 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.content.ContextCompat;
 
 import com.deivid22srk.microsoftrewards.service.SchedulerBroadcastReceiver;
 import com.deivid22srk.microsoftrewards.utils.AppConfig;
@@ -29,7 +30,7 @@ import java.util.Locale;
 public class SchedulerActivity extends AppCompatActivity {
     
     private AppConfig config;
-    private Switch schedulerEnabledSwitch;
+    private SwitchCompat schedulerEnabledSwitch;
     private TextView scheduledTimeText;
     private TextInputEditText bingSearchCountEdit;
     private TextInputEditText chromeSearchCountEdit;
@@ -353,10 +354,10 @@ public class SchedulerActivity extends AppCompatActivity {
             statusText.setText("✅ Agendamento Ativo\n⏰ Próxima execução: " + timeStr + 
                 "\n🔍 Bing: " + config.getBingSearchCount() + " pesquisas" +
                 "\n🌐 Chrome: " + config.getChromeSearchCount() + " pesquisas");
-            statusText.setTextColor(getColor(R.color.microsoft_green));
+            statusText.setTextColor(ContextCompat.getColor(this, R.color.microsoft_green));
         } else {
             statusText.setText("⏸️ Agendamento Desativado");
-            statusText.setTextColor(getColor(R.color.microsoft_orange));
+            statusText.setTextColor(ContextCompat.getColor(this, R.color.microsoft_orange));
         }
     }
 }
