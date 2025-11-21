@@ -43,6 +43,9 @@ public class ScheduledSearchService extends Service {
         config = AppConfig.getInstance(this);
         rootManager = RootManager.getInstance();
         
+        // Verificar ROOT de forma síncrona (necessário no service)
+        rootManager.checkRootNow();
+        
         // Verificar se tem ROOT
         useRoot = rootManager.isRootGranted();
         Log.d(TAG, useRoot ? "✅ ROOT disponível" : "⚠️ ROOT não disponível");
@@ -151,16 +154,26 @@ public class ScheduledSearchService extends Service {
             config.setSearchEngine(AppConfig.SearchEngine.BING);
             config.setBrowserApp(AppConfig.BrowserApp.BING);
             
-            // Iniciar automação
-            Intent automationIntent = new Intent(this, SearchAutomationService.class);
-            automationIntent.putExtra("searchItems", new ArrayList<>(searches));
-            automationIntent.putExtra("scheduledMode", true);
-            automationIntent.putExtra("browserName", "Bing");
-            startService(automationIntent);
-            
-            // Aguardar conclusão (estimativa: intervalo * quantidade)
-            int waitTime = (config.getActualSearchInterval() + 3) * count * 1000; // +3s de margem
-            Thread.sleep(waitTime);
+            // Usar ROOT se disponível para abrir navegadores
+            if (useRoot && rootManager != null && rootManager.isRootGranted()) {
+                executeSearchesWithRoot(searches, "Bing", AppConfig.BrowserApp.BING);
+            } else {
+                // Iniciar automação normal
+                Intent automationIntent = new Intent(this, SearchAutomationService.class);
+                automationIntent.putExtra("searchItems", new ArrayList<>(searches));
+                automationIntent.putExtra("scheduledMode", true);
+                automationIntent.putExtra("browserName", "Bing");
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(automationIntent);
+                } else {
+                    startService(automationIntent);
+                }
+                
+                // Aguardar conclusão (estimativa: intervalo * quantidade)
+                int waitTime = (config.getActualSearchInterval() + 3) * count * 1000; // +3s de margem
+                Thread.sleep(waitTime);
+            }
             
             // Restaurar configurações originais
             config.setSearchEngine(originalEngine);
@@ -187,16 +200,26 @@ public class ScheduledSearchService extends Service {
             config.setSearchEngine(AppConfig.SearchEngine.BING); // USAR BING NO CHROME
             config.setBrowserApp(AppConfig.BrowserApp.CHROME);
             
-            // Iniciar automação
-            Intent automationIntent = new Intent(this, SearchAutomationService.class);
-            automationIntent.putExtra("searchItems", new ArrayList<>(searches));
-            automationIntent.putExtra("scheduledMode", true);
-            automationIntent.putExtra("browserName", "Chrome");
-            startService(automationIntent);
-            
-            // Aguardar conclusão
-            int waitTime = (config.getActualSearchInterval() + 3) * count * 1000;
-            Thread.sleep(waitTime);
+            // Usar ROOT se disponível para abrir navegadores
+            if (useRoot && rootManager != null && rootManager.isRootGranted()) {
+                executeSearchesWithRoot(searches, "Chrome", AppConfig.BrowserApp.CHROME);
+            } else {
+                // Iniciar automação normal
+                Intent automationIntent = new Intent(this, SearchAutomationService.class);
+                automationIntent.putExtra("searchItems", new ArrayList<>(searches));
+                automationIntent.putExtra("scheduledMode", true);
+                automationIntent.putExtra("browserName", "Chrome");
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(automationIntent);
+                } else {
+                    startService(automationIntent);
+                }
+                
+                // Aguardar conclusão
+                int waitTime = (config.getActualSearchInterval() + 3) * count * 1000;
+                Thread.sleep(waitTime);
+            }
             
             // Restaurar configurações originais
             config.setSearchEngine(originalEngine);
@@ -206,6 +229,75 @@ public class ScheduledSearchService extends Service {
             
         } catch (Exception e) {
             Log.e(TAG, "❌ Erro nas pesquisas Chrome: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Executa pesquisas usando ROOT (mais confiável)
+     */
+    private void executeSearchesWithRoot(List<SearchItem> searches, String browserName, AppConfig.BrowserApp browser) {
+        Log.d(TAG, "🔐 Executando " + searches.size() + " pesquisas com ROOT no " + browserName);
+        
+        try {
+            String packageName = browser.getPackageName();
+            String component = getComponentForBrowser(browser);
+            
+            for (int i = 0; i < searches.size(); i++) {
+                SearchItem item = searches.get(i);
+                String url = config.buildSearchUrl(item.getSearchText());
+                
+                Log.d(TAG, String.format("🔍 [%d/%d] %s: %s", i + 1, searches.size(), browserName, item.getSearchText()));
+                updateNotification(String.format("🔍 %s [%d/%d]: %s", browserName, i + 1, searches.size(), item.getSearchText()));
+                
+                // Acordar dispositivo antes de cada pesquisa
+                rootManager.wakeDevice();
+                
+                // Abrir URL usando ROOT
+                String command = String.format(
+                    "am start -a android.intent.action.VIEW -d '%s' %s",
+                    url,
+                    component != null ? "-n " + component : "-p " + packageName
+                );
+                
+                String result = rootManager.executeRootCommand(command);
+                
+                if (result != null && (result.contains("Starting") || result.contains("Success"))) {
+                    item.setStatus(SearchItem.SearchStatus.COMPLETED);
+                    Log.d(TAG, "✅ Pesquisa aberta com sucesso via ROOT");
+                } else {
+                    item.setStatus(SearchItem.SearchStatus.FAILED);
+                    Log.w(TAG, "⚠️ Falha ao abrir com ROOT: " + result);
+                }
+                
+                // Aguardar intervalo antes da próxima
+                if (i < searches.size() - 1) {
+                    int interval = config.getActualSearchInterval() * 1000;
+                    Thread.sleep(interval);
+                }
+            }
+            
+            Log.d(TAG, "✅ Todas as pesquisas " + browserName + " concluídas via ROOT");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Erro ao executar com ROOT: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Retorna o componente específico para cada navegador
+     */
+    private String getComponentForBrowser(AppConfig.BrowserApp browser) {
+        switch (browser) {
+            case CHROME:
+                return "com.android.chrome/com.google.android.apps.chrome.Main";
+            case BING:
+                return "com.microsoft.bing/com.microsoft.sapphire.app.main.MainActivity";
+            case EDGE:
+                return "com.microsoft.emmx/com.microsoft.ruby.Main";
+            case FIREFOX:
+                return "org.mozilla.firefox/.App";
+            default:
+                return null;
         }
     }
     

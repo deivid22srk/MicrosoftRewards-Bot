@@ -196,15 +196,22 @@ public class SchedulerActivity extends AppCompatActivity {
     private void checkRootAccess() {
         RootManager rootManager = RootManager.getInstance();
         
-        if (rootManager.isRootAvailable()) {
-            if (!rootManager.isRootGranted()) {
-                showRootRequestDialog();
-            } else {
-                Toast.makeText(this, "✅ ROOT disponível e ativo", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            showNoRootWarning();
-        }
+        // Verificar ROOT de forma assíncrona para não bloquear UI
+        new Thread(() -> {
+            rootManager.checkRootNow();
+            
+            runOnUiThread(() -> {
+                if (rootManager.isRootAvailable()) {
+                    if (!rootManager.isRootGranted()) {
+                        showRootRequestDialog();
+                    } else {
+                        Toast.makeText(this, "✅ ROOT disponível e ativo", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    showNoRootWarning();
+                }
+            });
+        }).start();
     }
     
     private void showRootRequestDialog() {
@@ -263,9 +270,9 @@ public class SchedulerActivity extends AppCompatActivity {
                 // Salvar configurações temporariamente
                 saveTempSettings();
                 
-                // Iniciar o serviço de teste
-                Intent intent = new Intent(this, SchedulerBroadcastReceiver.class);
-                intent.setAction("com.deivid22srk.microsoftrewards.TEST_SCHEDULED_SEARCH");
+                // Iniciar o serviço de teste diretamente
+                Intent intent = new Intent("com.deivid22srk.microsoftrewards.TEST_SCHEDULED_SEARCH");
+                intent.setPackage(getPackageName());
                 sendBroadcast(intent);
                 
                 Toast.makeText(this, "🚀 Teste iniciado! Acompanhe o progresso.", Toast.LENGTH_LONG).show();

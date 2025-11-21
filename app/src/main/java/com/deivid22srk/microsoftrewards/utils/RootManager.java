@@ -16,9 +16,10 @@ public class RootManager {
     private static RootManager instance;
     private boolean isRootAvailable = false;
     private boolean isRootGranted = false;
+    private boolean hasChecked = false;
     
     private RootManager() {
-        checkRootAccess();
+        // Não verificar ROOT no construtor para não bloquear
     }
     
     public static synchronized RootManager getInstance() {
@@ -26,6 +27,22 @@ public class RootManager {
             instance = new RootManager();
         }
         return instance;
+    }
+    
+    /**
+     * Inicializa verificação ROOT de forma assíncrona
+     */
+    public void initAsync(final OnRootCheckListener listener) {
+        new Thread(() -> {
+            checkRootAccess();
+            if (listener != null) {
+                listener.onRootCheckComplete(isRootAvailable, isRootGranted);
+            }
+        }).start();
+    }
+    
+    public interface OnRootCheckListener {
+        void onRootCheckComplete(boolean available, boolean granted);
     }
     
     /**
@@ -47,23 +64,30 @@ public class RootManager {
      */
     private void checkRootAccess() {
         try {
-            // Tentar executar comando su
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
+            // Tentar executar comando su com timeout
+            ProcessBuilder processBuilder = new ProcessBuilder("su", "-c", "id");
+            Process process = processBuilder.start();
             
-            // Comando simples para testar
-            os.writeBytes("id\n");
-            os.writeBytes("exit\n");
-            os.flush();
+            // Ler output com timeout
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             
-            // Aguardar resposta
-            int exitCode = process.waitFor();
+            // Aguardar com timeout de 3 segundos
+            boolean finished = process.waitFor(3, java.util.concurrent.TimeUnit.SECONDS);
+            
+            if (!finished) {
+                Log.w(TAG, "⚠️ Timeout ao verificar ROOT");
+                process.destroy();
+                isRootAvailable = false;
+                isRootGranted = false;
+                return;
+            }
+            
+            int exitCode = process.exitValue();
             
             if (exitCode == 0) {
                 isRootAvailable = true;
                 
                 // Verificar se realmente tem acesso root lendo o output
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 String line = reader.readLine();
                 
                 if (line != null && line.contains("uid=0")) {
@@ -99,8 +123,14 @@ public class RootManager {
             os.writeBytes("exit\n");
             os.flush();
             
-            // Aguardar resposta (com timeout)
-            process.waitFor();
+            // Aguardar resposta com timeout de 30 segundos (usuário precisa aceitar)
+            boolean finished = process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+            
+            if (!finished) {
+                Log.w(TAG, "⏱️ Timeout - usuário não respondeu ao popup ROOT");
+                process.destroy();
+                return false;
+            }
             
             // Verificar novamente
             checkRootAccess();
@@ -139,13 +169,20 @@ public class RootManager {
             os.writeBytes("exit\n");
             os.flush();
             
+            // Aguardar com timeout de 5 segundos
+            boolean finished = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+            
+            if (!finished) {
+                Log.w(TAG, "⚠️ Timeout ao executar comando");
+                process.destroy();
+                return null;
+            }
+            
             StringBuilder output = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
             }
-            
-            process.waitFor();
             
             String result = output.toString().trim();
             Log.d(TAG, "✅ Resultado: " + result);
@@ -178,7 +215,16 @@ public class RootManager {
             os.writeBytes("exit\n");
             os.flush();
             
-            int exitCode = process.waitFor();
+            // Aguardar com timeout de 10 segundos
+            boolean finished = process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+            
+            if (!finished) {
+                Log.w(TAG, "⚠️ Timeout ao executar comandos");
+                process.destroy();
+                return false;
+            }
+            
+            int exitCode = process.exitValue();
             
             if (exitCode == 0) {
                 Log.d(TAG, "✅ Comandos executados com sucesso");
@@ -251,6 +297,16 @@ public class RootManager {
     public boolean isInDozeMode() {
         String result = executeRootCommand("dumpsys deviceidle get deep");
         return result != null && result.contains("IDLE");
+    }
+    
+    /**
+     * Verifica ROOT de forma síncrona (use com cuidado)
+     */
+    public void checkRootNow() {
+        if (!hasChecked) {
+            checkRootAccess();
+            hasChecked = true;
+        }
     }
     
     /**
